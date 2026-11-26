@@ -65,6 +65,7 @@ import { createMakeCommands } from '../../application/commands/make-commands';
 import { refreshContextualToolbar } from './contextual-toolbar.js';
 import type { TrackEvent } from '../../application/analytics/analytics-port';
 import { sceneSummary } from '../../application/analytics/scene-summary';
+import { createMakeUsage } from '../../application/analytics/make-usage';
 import { createPieceQuotes } from '../../application/engine/piece-quotes';
 import { withDesignAnalytics } from './piece-analytics';
 import { furnitureKind } from '../../domain/furniture/furniture';
@@ -234,19 +235,10 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
         // is the paid one (bound below).
         const makeCommands = createMakeCommands(() => model.scene, historyActions.checkpoint), pieceQuotes = createPieceQuotes();
         const make = createMakeView({ dom, lifetime, resources, camera, scene: () => model.scene, openDrawings: () => drawings.open(), toast: message => shell.toast(message),
-            setConstruction: (id, change) => {
-                const changed = makeCommands.setConstruction(id, change);
-                if (changed) track('make_construction_changed', { setting: change.joints ? 'joints' : change.back ? 'back' : 'edge_band_mm', value: String(change.joints ?? change.back ?? '') });
-                return changed;
-            },
-            opened: parts => track('make_opened', { product: furnitureKind(model.activeCabinet().state), part_count: parts }),
-            saved: (format, parts) => track('make_export_saved', { format: format === 'parts' ? 'parts_csv' : format, part_count: parts }),
-            tabViewed: tab => track('make_tab_viewed', { tab }), studioOpened: (parts, direct) => track('assembly_studio_opened', { part_count: parts, direct }),
+            setConstruction: (id, change) => makeCommands.setConstruction(id, change),
+            note: createMakeUsage({ track, product: () => furnitureKind(model.activeCabinet().state) }).note,
             estimate: id => pieceQuotes(model.scene, id, currency),
-            openPrice: () => {
-                track('make_price_opened', { product: furnitureKind(model.activeCabinet().state) });
-                make.act('make-done'); insight.open('price');
-            }, pay: async () => !credits || await credits.charge('technical-drawings'),
+            openPrice: () => { make.act('make-done'); insight.open('price'); }, pay: async () => !credits || await credits.charge('technical-drawings'),
             // The gate into assembly: the engine's own check of the design as it is now, for the piece Make has open.
             gate: id => { engine.refresh(model.scene); const checked = engine.current(); return checked ? assemblyGate(checked.evaluation, id) : { open: true, blockers: [], notes: [] }; },
             openCheck: () => { make.act('make-done'); insight.open(); },

@@ -7,6 +7,43 @@ import type { CreditCurrency } from '../credits/credit-catalog';
  */
 type Product = 'wardrobe' | 'kitchen';
 type Style = 'realistic' | 'studio' | 'concept';
+type MakeExportFormat = 'pdf' | 'csv' | 'parts_csv';
+/** How Make was left: Done, Escape, Studio | Furniture, the price or Design check it opened, the page hidden or closed. */
+export type MakeExit = 'done' | 'escape' | 'view_mode' | 'price' | 'design_check' | 'page_hidden' | 'piece_gone' | 'editor_closed';
+/** Where Assembly Studio was opened from: the toolbar, the panel's shortcut, a part's stage link, a Hardware row, the
+ * closed gate's Retry, or the browser's Forward. */
+export type AssemblyEntry = 'toolbar' | 'panel' | 'part' | 'hardware' | 'gate_retry' | 'history';
+export type AssemblyExit = 'exit' | 'escape' | 'history' | 'make_closed' | 'page_hidden';
+
+/** One visit to Make, sent when it closes: how long, how it ended, and which of its tools were used (and how often). */
+export interface MakeVisitSummary {
+  duration_ms: number; exit: MakeExit; resumed: boolean; part_count: number;
+  /** The toolbar and View menu tools used ('apart', 'open', 'fronts', 'measures', 'numbers', 'parts', 'assembly',
+   * 'look-material', 'view-front' ...), each once; `tool_uses` counts every tap. */
+  tools_used: readonly string[]; tool_uses: number;
+  panel_opened: boolean; tabs_viewed: readonly string[];
+  parts_picked: number; part_picks: number; picks_canvas: number; picks_list: number; picks_step: number;
+  findings_opened: number; hardware_rows_opened: number; edge_band_changed: boolean; construction_changes: number;
+  /** Touches and clicks on the 3D view (turning it, or tapping a part), and whether it was zoomed with the wheel. */
+  canvas_touches: number; zoomed: boolean;
+  assembly_opens: number; assembly_ms: number; gate_blocks: number;
+  price_opened: boolean; drawings_opened: boolean; design_check_opened: boolean;
+  exports_requested: number; exports_saved: number;
+  /** The last thing done before leaving ('open', 'tool:apart', 'pick', 'tab:cutting', 'gate:drawings', 'export:pdf:not_paid' ...). */
+  last_action: string;
+}
+
+/** One visit to Assembly Studio, sent when it closes: how far the film got, and which controls were used. */
+export interface AssemblyVisitSummary {
+  duration_ms: number; exit: AssemblyExit; entry: AssemblyEntry | 'resumed'; part_count: number;
+  /** Steps in the film; the furthest step played to (1-based); the step showing when it closed; played to the end. */
+  steps_total: number; furthest_step: number; at_step: number; finished: boolean;
+  /** How much of the film was played, as a share of its length (1 = once through; more when replayed). */
+  watched_ratio: number;
+  play_presses: number; pauses: number; reversed: boolean; steps_stepped: number; chapters_jumped: number; scrubbed: boolean;
+  speed_changed: boolean; explore_used: boolean; parts_inspected: number; connections_shown: number;
+  chapter_list_opened: boolean; guide_opened: boolean;
+}
 
 export interface AnalyticsEventMap {
   // Acquisition and start-up
@@ -34,13 +71,19 @@ export interface AnalyticsEventMap {
   auto_design_opened: { wardrobe_w_cm: number; wardrobe_h_cm: number; wardrobe_d_cm: number };
   auto_design_proposals_generated: { proposal_count: number; complete_fit: boolean; compute_ms: number };
   auto_design_proposal_applied: { chosen_rank: number; chosen_archetype: string | null };
-  // Make
-  make_opened: { product: Product; part_count: number };
+  // Make (one visit: make_opened, what happened inside it, then make_closed with the whole visit summed up)
+  make_opened: { product: Product; part_count: number; finding_count: number };
+  make_closed: MakeVisitSummary;
   make_construction_changed: { setting: 'joints' | 'back' | 'edge_band_mm'; value: string };
-  make_export_saved: { format: 'pdf' | 'csv' | 'parts_csv'; part_count: number };
+  make_export_saved: { format: MakeExportFormat; part_count: number };
+  make_export_stopped: { format: MakeExportFormat; reason: 'gate_blocked' | 'not_paid' | 'piece_changed' | 'failed' };
   make_tab_viewed: { tab: 'parts' | 'hardware' | 'cutting' };
   make_price_opened: { product: Product };
-  assembly_studio_opened: { part_count: number; direct: boolean };
+  make_gate_blocked: { wanted: 'assembly' | 'drawings'; blocker_count: number; note_count: number; blocking_packs: readonly string[];
+    blocking_rules: readonly string[] };
+  make_gate_action: { action: 'retry' | 'open_check'; wanted: 'assembly' | 'drawings'; now_open: boolean };
+  assembly_studio_opened: { part_count: number; direct: boolean; entry: AssemblyEntry; start_step: number };
+  assembly_studio_closed: AssemblyVisitSummary;
   // Technical drawings
   drawings_opened: { sheet_count: number; ready_for_manufacture: boolean; blocking_findings_count: number; blocking_rule_ids: readonly string[];
     review_issues_count: number; wardrobe_count: number; kitchen_unit_count: number };
@@ -89,9 +132,11 @@ export const ANALYTICS_EVENTS = {
   wardrobe_shape_changed: { pillar: 'engagement' }, studio_room_edited: { pillar: 'engagement' },
   auto_design_opened: { pillar: 'engagement' }, auto_design_proposals_generated: { pillar: 'engagement' },
   auto_design_proposal_applied: { pillar: 'engagement' },
-  make_opened: { pillar: 'engagement' }, make_construction_changed: { pillar: 'engagement' },
-  make_export_saved: { pillar: 'realization', realizes: true },
-  make_tab_viewed: { pillar: 'engagement' }, make_price_opened: { pillar: 'engagement' }, assembly_studio_opened: { pillar: 'engagement' },
+  make_opened: { pillar: 'engagement' }, make_closed: { pillar: 'engagement' }, make_construction_changed: { pillar: 'engagement' },
+  make_export_saved: { pillar: 'realization', realizes: true }, make_export_stopped: { pillar: 'realization' },
+  make_tab_viewed: { pillar: 'engagement' }, make_price_opened: { pillar: 'engagement' },
+  make_gate_blocked: { pillar: 'engagement' }, make_gate_action: { pillar: 'engagement' },
+  assembly_studio_opened: { pillar: 'engagement' }, assembly_studio_closed: { pillar: 'engagement' },
   drawings_opened: { pillar: 'realization', realizes: true }, drawings_pdf_exported: { pillar: 'realization', realizes: true },
   ai_image_dialog_opened: { pillar: 'realization' }, ai_image_generation_started: { pillar: 'realization' },
   ai_image_generation_completed: { pillar: 'realization', realizes: true },

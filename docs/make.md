@@ -130,7 +130,8 @@ proof that it can be built and the written plan are in [buildability.md](buildab
 | Domain | `make/make-staging.ts` | Where each part waits, lying flat on the floor in front of the piece |
 | Presentation | `make/make-marks.ts`, `make-sheet.ts` | Measurements and numbers over the view; a part lying flat with its holes |
 | Presentation | `make/make-panel.ts`, `make-panel-tabs.ts`, `make-export.ts`, `make-steps-pdf.ts` | The panel and its tabs; the PDF (with its step pages) and CSV |
-| Presentation | `make/make-view.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys, the per-frame overlay |
+| Presentation | `make/make-view.ts`, `make-input.ts`, `make-view.ports.d.ts`, `make.css` | Opening and closing inside the editor, tools, keys and pointer, the per-frame overlay |
+| Application | `analytics/make-usage.ts` | What is done in Make and Assembly Studio, summed up per visit for product analytics (docs/analytics.md, "Make") |
 | Presentation | `make/make-gate.ts`, `assembly-plan-text.ts` | The gate into assembly and onto paper, saving; the plan in words for the Studio and the PDF |
 | Wiring | `contextual-actions.js`, `contextual-toolbar.js`, `mount-editor-bindings.js`, `bindings/canvas.js`, `editor-runtime.ts` | The Make tool, its toolbar and View menu, taps, the joint command, paying |
 

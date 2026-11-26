@@ -15,8 +15,10 @@ import { buildsLying } from './assembly-plan-text';
 import { type PanelTab } from './make-panel-tabs';
 import { createMakePlayer } from './make-player';
 import { createStudioController } from './assembly-studio-controller';
+import { bindMakeInput } from './make-input';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
+import type { MakeExit } from '../../domain/analytics/analytics-events';
 import { picturesFor } from './make-pictures'; // the saved drawings' step pictures, photographed from the film
 
 const GLIDE = .9, BAND_KEY = 'furnidraw.make.band', SVG = 'http://www.w3.org/2000/svg';
@@ -58,12 +60,12 @@ export function createMakeView(ports: MakeViewPorts) {
     // The film's camera: following the director's shots, and gliding back to them after the person has looked around.
     follow: true, shots: null as ((t: number) => Pose) | null, shotsFor: '', glide: null as { from: Pose; left: number } | null };
   const player = createMakePlayer();
-  const { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera: studioCamera } = createStudioController({
+  const { studio, enterStudio, leaveStudio, inspect, stageForPart, studioAction, historyChanged, fittedCamera: studioCamera, filmFacts } = createStudioController({
     st, player, make3d, app, view, ports, reducedMotion, hidePanel, showPanel, filming, paper, showFilm, followFrom, length: cm => length(cm), material,
     mayAssemble: () => gate.passes('assembly'),
   });
   // What leaves Make passes the gate: Assembly and the paper only for a piece that can be built (make-gate.ts).
-  const gate = createMakeGate({ ports, piece: () => st.piece ? { piece: st.piece, id: st.id } : null, rebuild: () => rebuild(), assemble: () => enterStudio(),
+  const gate = createMakeGate({ ports, piece: () => st.piece ? { piece: st.piece, id: st.id } : null, rebuild: () => rebuild(), assemble: () => enterStudio(undefined, true, 'gate_retry'),
     showList: () => { make3d.ring(null); st.selected = null; make3d.setSelected(null); showPanel('list'); pressed(); } });
   let editorPose: Pose | null = null;
   let band = (() => { try { return Number(globalThis.localStorage?.getItem(BAND_KEY)) || 0; } catch { return 0; } })();
@@ -179,7 +181,7 @@ export function createMakeView(ports: MakeViewPorts) {
   }
   function followFrom(from: Pose) { st.follow = true; st.glide = { from: { ...from }, left: GLIDE }; }
   function showPanel(mode: 'list' | 'part') {
-    st.panel = mode;
+    st.panel = mode; ports.note?.({ kind: 'panel', mode, tab: st.tab });
     renderPanel();
     panel.dataset.sheetPosition = 'expanded';
     if (!panel.classList.contains('show')) panel.classList.add('show');
@@ -190,7 +192,9 @@ export function createMakeView(ports: MakeViewPorts) {
     filming();
     pressed();
   }
-  function select(n: number | null) {
+  /** Picks a part (or none); `via` says how, for product analytics. */
+  function select(n: number | null, via?: 'canvas' | 'list' | 'step' | 'finding') {
+    if (n !== null && via) ports.note?.(st.studio ? { kind: 'studio', action: 'part', value: n } : { kind: 'pick', part: n, via });
     if (st.studio) { inspect(n); return; }
     make3d.ring(null);
     st.selected = n;
@@ -202,7 +206,8 @@ export function createMakeView(ports: MakeViewPorts) {
   function showFinding(k: number) {
     const piece = st.piece, f = piece?.findings[k], part = f && piece.parts.find(p => p.ids.includes(f.board));
     if (!piece || !f || !part) return;
-    select(part.n);
+    ports.note?.({ kind: 'finding' });
+    select(part.n, 'finding');
     const rings = findingHoles(piece.boards, piece.holes, f), hole = piece.holes[rings[0] ?? -1];
     make3d.ring(rings);
     const box = make3d.ringExtent(RING_ROOM) ?? make3d.currentExtent(part.n), centre = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()), now = ports.camera.camNow();
@@ -213,7 +218,7 @@ export function createMakeView(ports: MakeViewPorts) {
   function step(by: number) {
     if (!st.piece) return;
     const parts = st.piece.parts, at = parts.findIndex(p => p.n === st.selected);
-    select(parts[(at + by + parts.length) % parts.length]!.n);
+    select(parts[(at + by + parts.length) % parts.length]!.n, 'step');
   }
   /** Marks Make's toggles in the bottom toolbar as on or off. */
   function pressed() {
@@ -264,12 +269,13 @@ export function createMakeView(ports: MakeViewPorts) {
     resources.frameHooks.add(frame);
     app.classList.add('make-on');
     ports.refreshToolbar();
-    pressed(); ports.opened?.(piece.parts.length);
+    pressed(); ports.note?.({ kind: 'opened', parts: piece.parts.length, findings: piece.findings.length });
     ports.camera.frameWardrobe();
   }
-  function close() {
+  function close(exit: MakeExit = 'editor_closed') {
     if (!st.piece) return;
-    if (st.studio) leaveStudio();
+    if (st.studio) leaveStudio(true, 'make_closed');
+    ports.note?.({ kind: 'closed', exit });
     hidePanel();
     resources.frameHooks.delete(frame);
     resources.cam.layers.set(0);
@@ -285,8 +291,9 @@ export function createMakeView(ports: MakeViewPorts) {
   /** A tool from the bottom toolbar or its View menu. */
   function act(key: string) {
     if (!st.piece) return;
+    if (key === 'make-done') { close('done'); return; }
+    ports.note?.({ kind: 'tool', key });
     if (key === 'make-assembly') { enterStudio(); return; }
-    if (key === 'make-done') { close(); return; }
     if (key === 'make-apart') {
       st.apartOn = !st.apartOn;
       // The camera keeps its angle and backs away (or comes back) so the whole piece stays in view.
@@ -309,30 +316,38 @@ export function createMakeView(ports: MakeViewPorts) {
     if (st.studio && !st.explore) { studio.wake(); return; }
     const r = resources.cv.getBoundingClientRect();
     raycaster.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), resources.cam);
-    select(make3d.pick(raycaster));
+    select(make3d.pick(raycaster), 'canvas');
   }
 
   listen(panel, 'click', e => {
     const t = e.target as Element, row = t.closest<HTMLElement>('[data-n]'), bandButton = t.closest<HTMLElement>('[data-band]'), stepBy = t.closest<HTMLElement>('[data-step]');
-    if (t.closest('[data-assembly]')) enterStudio();
-    else if (t.closest<HTMLElement>('[data-assembly-part]')) enterStudio(stageForPart(Number(t.closest<HTMLElement>('[data-assembly-part]')!.dataset.assemblyPart)));
+    if (t.closest('[data-assembly]')) enterStudio(undefined, true, 'panel');
+    else if (t.closest<HTMLElement>('[data-assembly-part]')) enterStudio(stageForPart(Number(t.closest<HTMLElement>('[data-assembly-part]')!.dataset.assemblyPart)), true, 'part');
     else if (t.closest<HTMLElement>('[data-hardware]')) {
       const row = t.closest<HTMLElement>('[data-hardware]')!;
       const index = st.piece?.fittings.findIndex(f => f.kind === row.dataset.hardware && (f.size ?? '') === row.dataset.size) ?? -1;
       const stages = st.piece?.steps.map((step, k) => ({ step, k })).filter(({ step }) => step.items.some(i => {
         const f = st.piece!.fittings[i]!; return f.kind === row.dataset.hardware && (f.size ?? '') === row.dataset.size;
       })) ?? [];
-      if (index >= 0) enterStudio(stages.find(({ k }) => k >= player.head.step)?.k ?? stages[0]?.k);
+      ports.note?.({ kind: 'hardware' });
+      if (index >= 0) enterStudio(stages.find(({ k }) => k >= player.head.step)?.k ?? stages[0]?.k, true, 'hardware');
     }
     else if (t.closest('.make-close')) hidePanel();
     else if (gate.click(t)) { /* the closed gate's own buttons */ }
     else if (t.closest('.make-back')) { st.selected = null; gate.clear(); make3d.setSelected(null); showPanel('list'); }
     else if (t.closest<HTMLElement>('[data-finding]')) showFinding(Number(t.closest<HTMLElement>('[data-finding]')!.dataset.finding));
-    else if (row) select(Number(row.dataset.n));
-    else if (bandButton) { st.cut = null; band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel(); }
+    else if (row) select(Number(row.dataset.n), 'list');
+    else if (bandButton) {
+      st.cut = null; band = Number(bandButton.dataset.band); try { globalThis.localStorage?.setItem(BAND_KEY, String(band)); } catch { /* private window */ } renderPanel();
+      ports.note?.({ kind: 'construction', setting: 'edge_band_mm', value: String(band) });
+    }
     else if (stepBy) step(Number(stepBy.dataset.step));
-    else if (t.closest('[data-set],[data-price]')) { if (t.closest('[data-price]')) ports.openPrice?.(); else ports.openDrawings(); }
-    else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); ports.tabViewed?.(st.tab); }
+    else if (t.closest('[data-set],[data-price]')) {
+      const price = !!t.closest('[data-price]');
+      ports.note?.({ kind: price ? 'price' : 'drawings' });
+      if (price) ports.openPrice?.(); else ports.openDrawings();
+    }
+    else if (t.closest<HTMLElement>('[data-tab]')) { st.tab = t.closest<HTMLElement>('[data-tab]')!.dataset.tab as PanelTab; renderPanel(); ports.note?.({ kind: 'tab', tab: st.tab }); }
     else if (t.closest<HTMLElement>('[data-joints],[data-back]')) construct(t.closest<HTMLElement>('[data-joints],[data-back]')!.dataset);
     else if (t.closest<HTMLElement>('[data-save]')) {
       const piece = st.piece!;
@@ -346,12 +361,13 @@ export function createMakeView(ports: MakeViewPorts) {
     if (!st.piece) return;
     const change = choice.joints ? { joints: choice.joints } : { back: choice.back };
     if (!ports.setConstruction(st.id, change as Parameters<MakeViewPorts['setConstruction']>[1])) return;
+    ports.note?.(choice.joints ? { kind: 'construction', setting: 'joints', value: choice.joints } : { kind: 'construction', setting: 'back', value: choice.back ?? '' });
     rebuild();
   }
   /** Takes the piece apart again from the design as it is now, keeping the view, the tab and the part picked. */
   function rebuild() {
     const { piece } = pieceOf(st.id);
-    if (!piece) { close(); return; }
+    if (!piece) { close('piece_gone'); return; }
     const selected = st.selected !== null && piece.parts.some(p => p.n === st.selected) ? st.selected : null;
     Object.assign(st, { piece, cut: null, marks: '', shotsFor: '' });
     player.load(piece, -st.pose.y, buildsLying(piece, ports.scene()));
@@ -363,35 +379,10 @@ export function createMakeView(ports: MakeViewPorts) {
   // Something else closing the panel (the editor closes its panels on some gestures) closes it for Make too.
   lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),
     panel, { attributes: true, attributeFilter: ['class'] });
-  // Looking around while the film plays: the camera is the person's until they ask the director back (Follow).
-  for (const type of ['pointerdown', 'wheel']) listen(resources.cv, type, e => {
-    if (!st.studio) return;
-    studio.wake();
-    // Playback owns the camera. Explore uses the editor's proven orbit, pan and pinch handlers.
-    if (!st.explore) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, { capture: true, passive: false });
-  // A button is pressed from the moment it is touched, and stays so while the work its click starts runs.
-  const held = (e: Event) => st.piece ? (e.target as Element).closest<HTMLElement>('[data-editor-id="toolbar"] .tb, .make-panel button') : null;
-  listen(app, 'pointerdown', e => held(e)?.classList.add('on'), true);
-  for (const type of ['click', 'pointercancel']) listen(app, type, e => { const b = held(e); if (b) lifetime.frame(() => b.classList.remove('on')); }, true);
-  listen(dom.window, 'popstate', historyChanged, true);
-  listen(app.ownerDocument, 'visibilitychange', () => { if (app.ownerDocument.hidden && st.studio) { player.pause(); showFilm(); studio.wake(); } });
-  // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
-  listen(dom.window, 'keydown', e => {
-    const k = e as KeyboardEvent;
-    const target = k.composedPath()[0] as Element | undefined;
-    if (!st.piece || (target?.closest?.('input,select,textarea') && k.key !== 'Escape')) return;
-    // The film: Space plays or pauses (a focused button keeps its own Space), the arrows go a step back or on.
-    if (st.filming && k.key === ' ' && !target?.closest?.('button')) { studioAction('play'); }
-    else if (st.filming && (k.key === 'ArrowRight' || k.key === 'ArrowLeft')) { player.step(k.key === 'ArrowRight' ? 1 : -1); showFilm(); }
-    else if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
-    else if (k.key === 'Escape') { if (st.selected !== null) select(null); else if (st.studio) leaveStudio(); else close(); }
-    else if ((k.key === 'ArrowRight' || k.key === 'ArrowLeft') && st.selected !== null) step(k.key === 'ArrowRight' ? 1 : -1);
-    k.preventDefault();
-    k.stopImmediatePropagation();
-  }, true);
+  bindMakeInput({ dom, lifetime, resources, app, st, player, studio, showFilm, studioAction, select, step, leaveStudio, close, historyChanged,
+    note: n => ports.note?.(n), film: filmFacts });
   // Changing between Studio and Furniture leaves Make.
-  listen(dom.$('#view-modes'), 'click', () => close(), true);
+  listen(dom.$('#view-modes'), 'click', () => close('view_mode'), true);
   lifetime.cleanup(onLengthUnitChange(() => { st.marks = ''; renderPanel(); }));
   lifetime.cleanup(onLanguageChange(() => { st.marks = ''; }));
   lifetime.cleanup(() => { close(); make3d.dispose(); overlay.remove(); panel.remove(); studio.root.remove(); });
