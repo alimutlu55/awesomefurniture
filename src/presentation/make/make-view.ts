@@ -15,6 +15,7 @@ import { buildsLying } from './assembly-plan-text';
 import { type PanelTab } from './make-panel-tabs';
 import { createMakePlayer } from './make-player';
 import { createStudioController } from './assembly-studio-controller';
+import { bindMakeInput } from './make-input';
 import { planShots, type Pose } from './make-director';
 import type { MakeViewPorts } from './make-view.ports';
 import { picturesFor } from './make-pictures'; // the saved drawings' step pictures, photographed from the film
@@ -363,33 +364,7 @@ export function createMakeView(ports: MakeViewPorts) {
   // Something else closing the panel (the editor closes its panels on some gestures) closes it for Make too.
   lifetime.observe(new MutationObserver(() => { if (st.panel !== 'closed' && !panel.classList.contains('show')) { st.panel = 'closed'; filming(); pressed(); } }),
     panel, { attributes: true, attributeFilter: ['class'] });
-  // Looking around while the film plays: the camera is the person's until they ask the director back (Follow).
-  for (const type of ['pointerdown', 'wheel']) listen(resources.cv, type, e => {
-    if (!st.studio) return;
-    studio.wake();
-    // Playback owns the camera. Explore uses the editor's proven orbit, pan and pinch handlers.
-    if (!st.explore) { e.preventDefault(); e.stopImmediatePropagation(); }
-  }, { capture: true, passive: false });
-  // A button is pressed from the moment it is touched, and stays so while the work its click starts runs.
-  const held = (e: Event) => st.piece ? (e.target as Element).closest<HTMLElement>('[data-editor-id="toolbar"] .tb, .make-panel button') : null;
-  listen(app, 'pointerdown', e => held(e)?.classList.add('on'), true);
-  for (const type of ['click', 'pointercancel']) listen(app, type, e => { const b = held(e); if (b) lifetime.frame(() => b.classList.remove('on')); }, true);
-  listen(dom.window, 'popstate', historyChanged, true);
-  listen(app.ownerDocument, 'visibilitychange', () => { if (app.ownerDocument.hidden && st.studio) { player.pause(); showFilm(); studio.wake(); } });
-  // While Make is open its keys come first, so the editor's shortcuts (delete, undo, nudge) never act on the design behind it.
-  listen(dom.window, 'keydown', e => {
-    const k = e as KeyboardEvent;
-    const target = k.composedPath()[0] as Element | undefined;
-    if (!st.piece || (target?.closest?.('input,select,textarea') && k.key !== 'Escape')) return;
-    // The film: Space plays or pauses (a focused button keeps its own Space), the arrows go a step back or on.
-    if (st.filming && k.key === ' ' && !target?.closest?.('button')) { studioAction('play'); }
-    else if (st.filming && (k.key === 'ArrowRight' || k.key === 'ArrowLeft')) { player.step(k.key === 'ArrowRight' ? 1 : -1); showFilm(); }
-    else if (k.key === 'Tab' || k.key === 'Enter' || k.key === ' ') return;
-    else if (k.key === 'Escape') { if (st.selected !== null) select(null); else if (st.studio) leaveStudio(); else close(); }
-    else if ((k.key === 'ArrowRight' || k.key === 'ArrowLeft') && st.selected !== null) step(k.key === 'ArrowRight' ? 1 : -1);
-    k.preventDefault();
-    k.stopImmediatePropagation();
-  }, true);
+  bindMakeInput({ dom, lifetime, resources, app, st, player, studio, showFilm, studioAction, select, step, leaveStudio, close, historyChanged });
   // Changing between Studio and Furniture leaves Make.
   listen(dom.$('#view-modes'), 'click', () => close(), true);
   lifetime.cleanup(onLengthUnitChange(() => { st.marks = ''; renderPanel(); }));
