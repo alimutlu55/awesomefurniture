@@ -124,18 +124,8 @@ export function centredOffset(room: Studio, w: StudioWall) {
   return face ? (face.start + face.end) / 2 : null;
 }
 
-/** Moves toward `want` as far as the room allows: the whole way if valid, else the furthest valid point
- * between `from` (valid) and `want`, found by halving. `at(t)` builds the room at fraction t. */
-export function furthestValid<T>(at: (t: number) => T | null, valid: (room: T) => boolean): { room: T | null; whole: boolean } {
-  const whole = at(1);
-  if (whole && valid(whole)) return { room: whole, whole: true };
-  let lo = 0, hi = 1, best: T | null = null;
-  for (let n = 0; n < 14; n++) {
-    const mid = (lo + hi) / 2, cand = at(mid);
-    if (cand && valid(cand)) { lo = mid; best = cand; } else hi = mid;
-  }
-  return { room: best, whole: false };
-}
+/** Moves toward a goal as far as the rules allow (the rule every piece shares, in domain/pieces/piece-motion.ts). */
+export { furthestValid } from '../../domain/pieces/piece-motion';
 
 /** The angle between the two walls meeting at a corner, as a number beside it: green at 90° (square) and
  * 180° (straight). Null for a free end. */

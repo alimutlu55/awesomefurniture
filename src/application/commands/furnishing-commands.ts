@@ -1,13 +1,11 @@
 import type { EditorScene } from '../projects/editor-scene';
-import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js';
 import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
 import { studioProblems } from '../../domain/studio/studio-validation';
 import { furnishingKind, startFurnishingType } from '../../domain/studio/furnishings/furnishing-kinds';
-import { addFurnishing, duplicateFurnishing, removeFurnishing, turnFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
-import { furnishingPoint, furnishingSolid, isFlat, newFurnishingPose } from '../../domain/studio/furnishings/furnishing-place';
-import { furnishingNoun } from '../../domain/studio/furnishings/furnishing-validation';
-import { pushOutOfWalls, type Pose } from '../../domain/studio/studio-placement';
-import { wallObstacles } from '../../domain/studio/studio-obstacles';
+import { addFurnishing, duplicateFurnishing, moveFurnishing, removeFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
+import { newFurnishingPose } from '../../domain/studio/furnishings/furnishing-place';
+import type { Pose } from '../../domain/studio/studio-placement';
+import { cabinetPiece, furnishingPiece, roomOf } from '../../domain/pieces/pieces';
 
 interface FurnishingCommandOptions {
   checkpoint: () => void;
@@ -18,13 +16,15 @@ interface FurnishingCommandOptions {
  * removed. Every change is checked by the room's rules and against the wardrobes, and refused with the reason. */
 export function createFurnishingCommands(getScene: () => EditorScene, { checkpoint, report }: FurnishingCommandOptions) {
   const furnishingOf = (room: Studio | undefined, id: string) => room?.furnishings?.find(f => f.id === id);
-  /** Why a room with furnishing `f` as it is could not be built, or null: the room's rules, then a wardrobe in its way. */
+  /** The room as every piece sees it: its walls and shapes, its own pieces and the cabinets standing in it. */
+  const roomWith = (studio: Studio | undefined) => roomOf(studio, getScene().wardrobes);
+  /** Why a room with furnishing `f` as it is could not be built, or null: the room's rules, then a cabinet in its way
+   * (the collision rule every piece shares, met by the cabinets the room's own rules do not know). */
   function problem(next: Studio, f: StudioFurnishing | undefined): string | null {
     const first = studioProblems(next)[0];
-    if (first) return first;
-    if (!f || isFlat(f)) return null;
-    const solid = createCabinetGeometry(() => [], () => [furnishingSolid(f)]);
-    return getScene().wardrobes.some(c => solid.cabinetCollides(c)) ? `A wardrobe or cabinet stands in the way of the ${furnishingNoun(f)}. Move it first.` : null;
+    if (first || !f) return first ?? null;
+    // The room's own rules passed, so a clash here is with a cabinet.
+    return furnishingPiece(f).clashes({ studio: next, bodies: getScene().wardrobes.map(c => cabinetPiece(c).body(next)) })[0] ?? null;
   }
   function commit(next: Studio) {
     checkpoint();
@@ -64,29 +64,26 @@ export function createFurnishingCommands(getScene: () => EditorScene, { checkpoi
     return changed;
   }
 
-  /** Turns it a quarter turn about its middle, sliding it out of a wall it would turn into. */
-  function turnStudioFurnishing(id: string, by = 90): boolean {
-    const room = getScene().studio, f = furnishingOf(room, id);
-    if (!room || !f) return false;
-    const turned = turnFurnishing(room, id, f.angle + by)!, g = furnishingOf(turned, id)!;
-    const walls = createCabinetGeometry(() => [], () => wallObstacles(room));
-    const free = pushOutOfWalls(room, g, { w: g.width, d: g.depth }, p => walls.cabinetCollides({ ...p, y: 0, state: { w: g.width, d: g.depth, h: g.height } }));
-    const pose = free ?? g;
-    return editFurnishing(id, r => turnFurnishing(r, id, pose.angle) && { ...r, furnishings: r.furnishings!.map(x => x.id === id ? { ...x, ...pose } : x) });
+  /** Turns it to `angle` (snapped unless `free`), or a quarter turn, about its middle: the turn every piece shares, which
+   * slides it out of a wall it would turn into. `recordHistory` false is a live preview while a handle is dragged. */
+  function turnStudioFurnishing(id: string, angle?: number, free = false, recordHistory = true): boolean {
+    const studio = getScene().studio, f = furnishingOf(studio, id);
+    if (!studio || !f) return false;
+    const piece = furnishingPiece(f), pose = angle === undefined ? piece.quarterTurn(roomWith(studio)) : piece.turn(roomWith(studio), angle, free);
+    return editFurnishing(id, r => moveFurnishing(r, id, pose), recordHistory, !recordHistory);
   }
 
   /** A copy beside it: to its right, its left, in front, else wherever its kind goes. Its id, or null with the reason. */
   function duplicateStudioFurnishing(id: string): string | null {
     const room = getScene().studio, f = furnishingOf(room, id);
     if (!room || !f) return null;
-    const offsets = [[f.width + 5, 0], [-f.width - 5, 0], [0, f.depth + 5], [0, -f.depth - 5]] as const;
-    const poses: Pose[] = offsets.map(([s, t]) => ({ ...furnishingPoint(f, s, t), angle: f.angle }));
+    const poses: Pose[] = furnishingPiece(f).copyPoses(roomWith(room));
     const fallback = newFurnishingPose(room, f.kind, { w: f.width, d: f.depth }, p => !copyAt(room, id, p));
     for (const pose of fallback ? [...poses, fallback] : poses) {
       const next = copyAt(room, id, pose);
       if (next) { commit(next); return next.furnishings!.at(-1)!.id; }
     }
-    report(`There is no room for another ${furnishingNoun(f)}.`);
+    report(`There is no room for another ${furnishingPiece(f).noun}.`);
     return null;
   }
   function copyAt(room: Studio, id: string, pose: Pose): Studio | null {

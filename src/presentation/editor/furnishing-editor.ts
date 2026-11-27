@@ -1,11 +1,9 @@
 import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
 import type { Pose } from '../../domain/studio/studio-placement';
-import { furnishingDragGoal, type FurnishingTarget } from './furnishing-drag';
+import { furnishingPiece, roomOf } from '../../domain/pieces/pieces';
+import type { PieceTarget } from '../../domain/pieces/piece-model';
+import { pieceAxes, piecePoint } from '../../domain/pieces/piece-motion';
 import { moveFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
-import { furnishingKind } from '../../domain/studio/furnishings/furnishing-kinds';
-import { furnishingAxes, furnishingPoint, steadyGap } from '../../domain/studio/furnishings/furnishing-place';
-import { fixtureObstacles } from '../../domain/studio/fixtures/fixture-place';
-import { gapsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
@@ -17,7 +15,7 @@ type Commands = Readonly<Pick<ReturnType<typeof import('../../application/comman
   'editFurnishing' | 'furnishingProblem' | 'turnStudioFurnishing' | 'duplicateStudioFurnishing' | 'removeStudioFurnishing'>>;
 interface Drag {
   id: string; pointer: number; target: HTMLElement; snapshot: string; original: Studio; ground: Point; client: { x: number; y: number };
-  moved: boolean; lock: FurnishingTarget | null; guides: Guide[]; reason: string | null;
+  moved: boolean; lock: PieceTarget | null; guides: Guide[]; reason: string | null;
 }
 
 export interface FurnishingEditorPorts {
@@ -37,7 +35,6 @@ export interface FurnishingEditorPorts {
 
 const round = (v: number) => Math.round(v * 10) / 10;
 const text = (v: number) => measureNumber(round(v)) + unitSuffix();
-const box = (f: StudioFurnishing, id: number): PlacedBox => ({ id, x: f.x, z: f.z, y: 0, angle: f.angle, w: f.width, d: f.depth, h: Math.max(f.height, 1) });
 
 /** Moving furnishings: a selected bed or rug is dragged across the floor by its own body. Near a wall it squares up flush
  * against it and lines up along it (the wall's middle, a window, the bed beside it); Shift moves freely. It goes as far as
@@ -67,9 +64,9 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
   function goal(g: Drag, f: StudioFurnishing, e: PointerEvent): Pose | null {
     const p = picking.groundPoint(e);
     if (!p) return null;
-    const out = furnishingDragGoal(g.original, f, { x: f.x + p.x - g.ground.x, z: f.z + p.z - g.ground.z, angle: f.angle }, g.lock, e.shiftKey);
+    const out = furnishingPiece(f).aim(roomOf(g.original, model.scene.wardrobes), { x: f.x + p.x - g.ground.x, z: f.z + p.z - g.ground.z, angle: f.angle }, g.lock, e.shiftKey);
     g.lock = out.lock;
-    g.guides = out.guides;
+    g.guides = [...out.guides];
     return out.pose;
   }
 
@@ -106,7 +103,7 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
   function nudge(across: number, out: number) {
     const f = selected();
     if (!f) return false;
-    const at = furnishingPoint(f, across, out);
+    const at = piecePoint(f, across, out);
     if (!sceneCommands.editFurnishing(f.id, r => moveFurnishing(r, f.id, { ...at, angle: f.angle }))) return false;
     callbacks.refresh();
     return true;
@@ -128,27 +125,18 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
   }
 
   /** What a person reads for a selected or dragged furnishing: the free floor on each side to the walls, wardrobes,
-   * fixtures and other furniture, amber where it is less than a person needs to use it (beside and at the foot of a bed). */
+   * fixtures and other furniture, amber where it is less than a person needs (the gaps every piece shares). */
   function measures(): RoomMeasure[] {
-    const studio = room(), f = selected(studio), k = f && furnishingKind(f.kind);
-    if (!studio || !f || !k || k.flat) return [];
-    const others: PlacedBox[] = [
-      ...model.scene.wardrobes.map(c => ({ id: c.id, x: c.x, z: c.z, y: c.y || 0, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h })),
-      ...fixtureObstacles(studio).map((o, i) => ({ id: -1000 - i, x: o.x, z: o.z, y: o.y, angle: o.angle, ...o.state })),
-      ...(studio.furnishings ?? []).filter(o => o.id !== f.id && !furnishingKind(o.kind)?.flat).map((o, i) => box(o, -2000 - i)),
-    ];
-    // The same four sides whether it is held or not, so no reading comes and goes when a drag starts.
-    const sides: GapSide[] = ['left', 'right', 'front', 'back'];
-    return gapsAround(box(f, -1), others, studio, sides).filter(g => g.distance > .5 && g.distance < 400).flatMap(g => {
-      const need = g.side === 'front' ? k.use.front : g.side === 'left' || g.side === 'right' ? k.use.sides : 0, line = steadyGap(f, g);
-      return line ? [{ a: line.from, b: line.to, text: text(g.distance), ...(need && g.distance < need ? { tone: 'warn' as const } : {}) }] : [];
-    });
+    const studio = room(), f = selected(studio);
+    if (!studio || !f || !furnishingPiece(f).blocks) return [];
+    return furnishingPiece(f).gaps(roomOf(studio, model.scene.wardrobes))
+      .map(g => ({ a: g.from, b: g.to, text: text(g.distance), ...(g.short ? { tone: 'warn' as const } : {}) }));
   }
 
   const reason = () => {
     const f = selected();
     if (!drag?.reason || !f) return null;
-    const { f: fw } = furnishingAxes(f.angle);
+    const { f: fw } = pieceAxes(f.angle);
     return { text: drag.reason, x: f.x + fw.x * f.depth / 2, y: Math.max(f.height, 40) + 20, z: f.z + fw.z * f.depth / 2 };
   };
 

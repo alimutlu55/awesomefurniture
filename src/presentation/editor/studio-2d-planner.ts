@@ -17,7 +17,7 @@ export interface Studio2DPlannerPorts {
   readonly model: { scene: EditorScene; snapshot(): string; restore(s: string): void };
   readonly sceneCommands: Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>,
     'editStudio' | 'standingAgainst' | 'carryWardrobes' | 'previewTranslation' | 'previewRotation' | 'restorePose' | 'settleCabinet' | 'studioProblem' | 'followCeilings'
-    | 'furnishingProblem' | 'editFurnishing'>;
+    | 'furnishingProblem' | 'editFurnishing' | 'turnStudioFurnishing'>;
   readonly history: { checkpoint(snapshot: string): void };
   readonly selectionState: {
     viewMode?: 'studio' | 'furniture';
@@ -119,7 +119,8 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const turningFurnishing = () => { const f = furnishingOf(); return f && { id: -1, x: f.x, z: f.z, angle: f.angle, state: { d: f.depth } }; };
   const pose = (fn: (id: string) => void) => { const f = furnishingOf(); if (f) fn(f.id); };
   const furnishingRotation = createPlanRotation({ cabinet: turningFurnishing, transform: () => transform, snapshot: () => model.snapshot(), checkpoint: s => history.checkpoint(s),
-    previewRotation: (_id, angle, from) => { let ok = false; pose(id => { ok = sceneCommands.editFurnishing(id, r => moveFurnishing(r, id, { ...from, angle }), false, true); }); return ok; },
+    // The turn every piece shares: snapped by the handle, slid out of a wall it would turn into.
+    previewRotation: (_id, angle) => { let ok = false; pose(id => { ok = sceneCommands.turnStudioFurnishing(id, angle, true, false); }); return ok; },
     restorePose: (_id, at) => pose(id => sceneCommands.editFurnishing(id, r => moveFurnishing(r, id, at), false, true)), settleCabinet: () => null,
     refresh: () => { callbacks.selectionChanged(); render(); } });
   const turners = [rotation, furnishingRotation];

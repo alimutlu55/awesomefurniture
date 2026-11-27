@@ -17,7 +17,8 @@ import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
 import { fixtureFromEnd, setFixtureSize } from '../../domain/studio/fixtures/fixture-edit';
 import { placeFromEnd } from '../../domain/studio/fixtures/fixture-setup';
 import { furnishingKind, furnishingType } from '../../domain/studio/furnishings/furnishing-kinds';
-import { setFurnishingSize, turnFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
+import { moveFurnishing, setFurnishingSize } from '../../domain/studio/furnishings/furnishing-edit';
+import { furnishingPiece } from '../../domain/pieces/pieces';
 import { alignRoomField } from './room-field-alignment';
 import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
 
@@ -179,7 +180,11 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
         const update = (edit: (r: Studio, v: number) => Studio | null) => write(r => alignRoomField(r, s, key, value, edit, valid));
-        if (s.kind === 'furnishing') write(r => key === 'angle' ? turnFurnishing(r, s.id, value) : setFurnishingSize(r, s.id, { [key]: value }));
+        if (s.kind === 'furnishing') write(r => {
+            // A typed turn is the turn every piece shares: exact, slid out of a wall it would turn into.
+            const f = r.furnishings?.find(x => x.id === s.id);
+            return key !== 'angle' ? setFurnishingSize(r, s.id, { [key]: value }) : f ? moveFurnishing(r, s.id, furnishingPiece(f).turn({ studio: r, bodies: [] }, value, true)) : null;
+        });
         else if (s.kind === 'fixture') update((r, v) => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, v) : setFixtureSize(r, s.id, { [key]: v }));
         else if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) {
             update((r, v) => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), v));

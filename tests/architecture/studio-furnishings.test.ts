@@ -5,7 +5,9 @@ import { createSceneCommands } from '../../src/application/commands/scene-comman
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
 import { wallLine } from '../../src/domain/studio/studio';
 import type { Studio } from '../../src/domain/studio/studio';
-import { moveWall, translateStudio } from '../../src/domain/studio/studio-edit';
+import { addOpening, moveWall, translateStudio } from '../../src/domain/studio/studio-edit';
+import { furnishingPiece } from '../../src/domain/pieces/pieces';
+import { snapTurn } from '../../src/domain/pieces/piece-motion';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { studioObstacles } from '../../src/domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry';
@@ -129,4 +131,19 @@ test('a furnishing\'s gap lines start from the middle of each side, so they slid
   assert.deepEqual([a.to.x, a.to.z], [50 - 84 - 40, 120]);
   assert.ok(Math.hypot(b.from.x - a.from.x, b.from.z - a.from.z) <= 1, 'a 1 cm move moves the line 1 cm');
   assert.equal(steadyGap(bed, { side: 'top', distance: 10 }), null);
+});
+
+test('furnishings follow the rules every piece shares: no doorways, turned out of walls, gaps read to cabinets', () => {
+  const e = editor(addOpening(room(), 'w3', 'door')!), door = e.studio().openings[0]!;
+  const id = e.commands.addStudioFurnishing('armchair')!;
+  const line = wallLine(e.studio(), e.studio().walls.find(w => w.id === 'w3')!)!;
+  const inDoorway = moveFurnishing(e.studio(), id, { x: line.a.x + line.ux * door.offset + line.nx * 50, z: line.a.z + line.uz * door.offset + line.nz * 50, angle: line.angle })!;
+  assert.ok(studioProblems(inDoorway).some(p => /doorway/.test(p)), 'an armchair may not stand in a doorway');
+  const piece = furnishingPiece(e.item(id));
+  assert.deepEqual(piece.capabilities, { mobility: 'floor', turnable: true, typed: false, resizable: true, finishable: true, duplicable: true });
+  const rug = furnishingPiece({ ...e.item(id), kind: 'rug', type: 'medium' });
+  assert.equal(rug.blocks, false, 'a rug is in nobody\'s way');
+  assert.equal(snapTurn(44), 45);
+  assert.equal(snapTurn(87), 90, 'a quarter turn is caught within 5°');
+  assert.equal(snapTurn(87, true), 87, 'Shift turns exactly');
 });

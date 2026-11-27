@@ -1,9 +1,11 @@
 import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
+import type { CabinetData } from '../../domain/pieces/pieces';
 import { furnishingKind } from '../../domain/studio/furnishings/furnishing-kinds';
 import { moveFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
-import { furnishingDragGoal, type FurnishingTarget } from './furnishing-drag';
+import { furnishingPiece, roomOf } from '../../domain/pieces/pieces';
+import type { PieceTarget } from '../../domain/pieces/piece-model';
 import { furthestValid, type Guide } from './studio-drag';
 import { esc } from './editor-format.js';
 
@@ -33,7 +35,7 @@ export function renderFurnishings(studio: Studio, selection: RoomSelection): str
 }
 
 interface PlanFurnishingPorts {
-  readonly model: { scene: { studio?: Studio | undefined }; snapshot(): string; restore(snapshot: string): void };
+  readonly model: { scene: { studio?: Studio | undefined; wardrobes: readonly CabinetData[] }; snapshot(): string; restore(snapshot: string): void };
   readonly sceneCommands: { furnishingProblem(next: Studio, id: string): string | null };
   readonly history: { checkpoint(snapshot: string): void };
   transform(): ViewportTransform;
@@ -45,7 +47,7 @@ interface PlanFurnishingPorts {
 /** Dragging a furnishing on the plan by its footprint, with the same rule as on the model: flush and lined up against a
  * wall it comes near, as far as the room allows, one undo step. Shift moves freely; a tap only selects it. */
 export function createPlanFurnishings(ports: PlanFurnishingPorts) {
-  let drag: { id: string; pointer: number; start: Point2D; client: Point2D; original: Studio; snapshot: string; moved: boolean; lock: FurnishingTarget | null; guides: Guide[] } | null = null;
+  let drag: { id: string; pointer: number; start: Point2D; client: Point2D; original: Studio; snapshot: string; moved: boolean; lock: PieceTarget | null; guides: Guide[] } | null = null;
   const point = (e: PointerEvent, svg: Element) => {
     const r = svg.getBoundingClientRect();
     return createTransform(ports.transform()).toScene(e.clientX - r.left, e.clientY - r.top);
@@ -76,12 +78,13 @@ export function createPlanFurnishings(ports: PlanFurnishingPorts) {
       if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.z) < 4) return;
       g.moved = true;
       const f = g.original.furnishings!.find(x => x.id === g.id)!, p = point(e, svg);
-      const out = furnishingDragGoal(g.original, f, { x: f.x + p.x - g.start.x, z: f.z + p.z - g.start.z, angle: f.angle }, g.lock, e.shiftKey, 5 / Math.max(.2, ports.transform().zoom) + 2);
+      const out = furnishingPiece(f).aim(roomOf(g.original, ports.model.scene.wardrobes), { x: f.x + p.x - g.start.x, z: f.z + p.z - g.start.z, angle: f.angle },
+        g.lock, e.shiftKey, 5 / Math.max(.2, ports.transform().zoom) + 2);
       g.lock = out.lock;
       const now = ports.model.scene.studio?.furnishings?.find(x => x.id === g.id) ?? f, to = out.pose;
       const want = (t: number) => moveFurnishing(g.original, g.id, { x: now.x + (to.x - now.x) * t, z: now.z + (to.z - now.z) * t, angle: to.angle });
       const result = furthestValid(want, s => !ports.sceneCommands.furnishingProblem(s, g.id));
-      g.guides = result.whole ? out.guides : [];
+      g.guides = result.whole ? [...out.guides] : [];
       if (result.room) ports.model.scene.studio = result.room;
       ports.refresh();
     },
