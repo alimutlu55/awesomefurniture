@@ -1,9 +1,11 @@
+import { quarterTurnCabinet } from '../../../application/commands/cabinet-turn';
+import { cabinetPiece } from '../../../domain/pieces/pieces';
 import { MODS } from '../../../domain/wardrobe/catalog.js';
 import { chosenLeaf } from '../selection-state.js';
 /** Escape and other global keys.
  * Event bindings only: each binder reads controls and calls commands or presenters it is given. */
 /** @param {import('./keyboard.ports').BindEscapeKeyPorts} ports */
-export function bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, lifetime }) {
+export function bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, sceneCommands, history, make, lifetime }) {
     const { $, window } = dom;
     lifetime.listen(window, 'keydown', e => {
         if (e.key === 'Escape') {
@@ -41,6 +43,21 @@ export function bindEscapeKey({ dom, interactions, inspector, planner, shell, in
             return;
         }
         const k = e.key.toLowerCase();
+        if (k === 'r' && selectionState.studioView !== '2d' && selectionState.focusOn && !selectionState.room && !make.active) {
+            const app = $('#app'), root = /** @type {Document | ShadowRoot} */ (app.getRootNode());
+            const target = root.activeElement ?? e.target;
+            if (target?.closest?.('input,select,textarea,[contenteditable],.contextual-popover') || app.dataset.scrubbing !== undefined) return;
+            if (interactionState.drag || interactionState.moveMode || interactionState.wardrobeGesture || interactionState.rotationGesture) return;
+            const cabinet = model.scene.wardrobes.find(c => c.id === model.scene.activeWardrobe);
+            if (!cabinet || cabinet.state.item >= 0 || cabinet.state.divider >= 0 || chosenLeaf(selectionState, cabinet.id, cabinet.state)
+                || !cabinetPiece(cabinet).capabilities.turnable) return;
+            e.preventDefault();
+            if (e.repeat) return;
+            const snapshot = model.snapshot();
+            if (quarterTurnCabinet(cabinet, sceneCommands)) history.checkpoint(snapshot);
+            inspector.update(true);
+            return;
+        }
         if (e.shiftKey && model.activeCabinet().state.item >= 0 && e.key.startsWith('Arrow')) {
             e.preventDefault();
             interactions.keyboardMove(e.key);

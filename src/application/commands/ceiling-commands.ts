@@ -1,3 +1,4 @@
+import { cabinetBox } from '../../domain/pieces/pieces';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createDesignCommands } from './design-commands';
 import { ceilingTop } from '../../domain/studio/studio-fit';
@@ -32,17 +33,16 @@ export function risesAbove(top: Top, ceiling: Top, w: number) {
  * takes its shape (studio-fit.ts), and one leaving it stands regular again at its tallest point. A shape
  * someone chose themselves stays as long as it keeps under the ceiling. */
 export function createCeilingCommands(getScene: () => EditorScene, report: (message: string) => void) {
-  const placed = (c: EditorCabinet) => ({ x: c.x, z: c.z, angle: c.angle, y: c.y || 0, w: c.state.w, d: c.state.d });
   const current = (c: EditorCabinet): WardrobeShape => c.state.shape ? resolveShape(c.state) : regularShape(c.state.w, c.state.h);
 
   /** Brings one wardrobe in line with the ceiling over it. `refit` false is a live preview: fittings are
    * left alone until the change is committed. Returns why it cannot stand there, or null. */
   function follow(cabinet: EditorCabinet, refit = true): string | null {
-    const fit = ceilingTop(getScene().studio, placed(cabinet)), state = cabinet.state;
+    const fit = ceilingTop(getScene().studio, cabinetBox(cabinet)), state = cabinet.state;
     if (fit && 'problem' in fit) return fit.problem;
     const under = fit && 'shape' in fit ? fit.shape : null;
     let next: WardrobeShape | null | undefined;
-    if (under) next = state.shape?.template === 'room' || ceilingClearance(getScene().studio, placed(cabinet))(current(cabinet)) ? under : undefined;
+    if (under) next = state.shape?.template === 'room' || ceilingClearance(getScene().studio, cabinetBox(cabinet))(current(cabinet)) ? under : undefined;
     // Out from under it: a fitted wardrobe stands regular at its tallest point.
     else if (state.shape?.template === 'room') next = null;
     const changed = next !== undefined && JSON.stringify(next) !== JSON.stringify(state.shape ?? null);
@@ -67,7 +67,7 @@ export function createCeilingCommands(getScene: () => EditorScene, report: (mess
   /** Why a shape someone picks does not fit under the ceiling over the wardrobe, or null. */
   let clearanceKey: string | undefined, clearance: ReturnType<typeof ceilingClearance> = () => false;
   function shapeBlocked(cabinet: EditorCabinet, shape: WardrobeShape): string | null {
-    const room = getScene().studio, pose = placed(cabinet), key = JSON.stringify([room, pose]);
+    const room = getScene().studio, pose = cabinetBox(cabinet), key = JSON.stringify([room, pose]);
     // A handle's boundary search checks many shapes in the same space. Prepare
     // its ceiling planes once; any room, pose or footprint change invalidates them.
     if (key !== clearanceKey) {

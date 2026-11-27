@@ -1,3 +1,4 @@
+import { quarterTurnCabinet } from '../../application/commands/cabinet-turn';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
 import { snapTurn } from '../../domain/pieces/piece-motion';
@@ -61,10 +62,8 @@ export function createPlanRotation(ports: RotationPorts) {
     quarterTurn() {
       if (drag) return;
       const c = ports.cabinet(); if (!c) return;
-      const from = { x: c.x, z: c.z, angle: c.angle }, snapshot = ports.snapshot();
-      ports.previewRotation(c.id, (c.angle + 90) % 360, from);
-      if (ports.settleCabinet(c.id)) ports.restorePose(c.id, from);
-      else if (c.angle !== from.angle || c.x !== from.x || c.z !== from.z) ports.checkpoint(snapshot);
+      const snapshot = ports.snapshot();
+      if (quarterTurnCabinet(c, ports)) ports.checkpoint(snapshot);
       ports.refresh();
     },
   };

@@ -1,16 +1,12 @@
 import { millimetreTranslation } from '../../domain/geometry/millimetres';
 import * as THREE from "three";
-import { isKitchen } from '../../domain/furniture/furniture';
-import { kitchenUnit } from '../../domain/kitchen/kitchen-units';
+import { hangsOnWall } from '../../domain/pieces/cabinet-piece';
 import { pointerTapSlop } from './interaction-state.js';
 import { cabinetSmartGuides } from './scene-smart-guides';
 import { autoGuideTranslation } from './smart-guides';
 import { snapArmed, snapToleranceCm } from '../../domain/geometry/alignment';
 import { snapTurn } from '../../domain/pieces/piece-motion';
 import { sweptAngle } from './turn-gesture';
-/** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
- * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
-const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
 /** @param {Pick<import('./editor-gestures.ports').CreateEditorGesturesPorts, 'dom' | 'camera' | 'inspector' | 'model' | 'picking' | 'interactionState' | 'cameraState' | 'resources' | 'sceneCommands' | 'renderState' | 'history' | 'cabinetGeometry'> & { callbacks: Pick<ReturnType<typeof import('./editor-gestures.js').createEditorGestures>, 'cancelMovement'> & { wallGuide(segment: { a: { x: number; z: number }; b: { x: number; z: number } } | null): void; assist(sides: import('../../domain/studio/scene-gaps').GapSide[] | null): void } }} ports */
 export function createCabinetDrag({ dom, camera, inspector, model, picking, interactionState, cameraState, resources, sceneCommands, renderState, history, cabinetGeometry, callbacks }) {
     function beginRotation(e, handle) {
@@ -87,7 +83,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         projected.along = { x: (a1.x - a0.x) / 50, y: (a1.y - a0.y) / 50 };
         const planeHeight = axis === 'floor' ? (picking.cast(e, renderState.hits)?.point.y || 0) : 0;
         // Which guides the move can catch: a slide across the floor never changes a level.
-        const guides = axis === 'floor' && !hangs(w.state) ? 'floor' : axis === 'y' ? 'y' : undefined;
+        const guides = axis === 'floor' && !hangsOnWall(w.state) ? 'floor' : axis === 'y' ? 'y' : undefined;
         interactionState.wardrobeGesture = { id: w.id, origin, axis, handle, projected, guides, held: new Set(),
             x: e.clientX, y: e.clientY, planeHeight, ground: picking.groundPoint(e, planeHeight), snapshot: model.snapshot(), moved: false, follows: false };
         resources.cv.style.cursor = 'grabbing';
@@ -110,7 +106,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         g.moved = true;
         let delta = {};
-        if (g.axis === 'floor' && hangs(model.activeCabinet().state)) {
+        if (g.axis === 'floor' && hangsOnWall(model.activeCabinet().state)) {
             // Wall units: the pointer moves them in the plane of their wall: along it and up or down.
             const u = g.projected.along, v = g.projected.y, det = u.x * v.y - u.y * v.x, turn = model.activeCabinet().angle * Math.PI / 180;
             if (Math.abs(det) > .01) {
@@ -145,7 +141,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         }
         sceneCommands.previewTranslation(g.id, cabinetGeometry.cabinetTranslation(g.origin, delta));
         const w = model.activeCabinet();
-        const axes = g.axis === 'floor' ? (hangs(w.state) ? ['x', 'y', 'z'] : ['x', 'z']) : [g.axis];
+        const axes = g.axis === 'floor' ? (hangsOnWall(w.state) ? ['x', 'y', 'z'] : ['x', 'z']) : [g.axis];
         // Caught within a few screen pixels, as the guides show it; the caught line holds while the pointer settles.
         const pxPerCm = Math.max(...axes.map(k => Math.hypot(g.projected[k].x, g.projected[k].y)));
         const tolerance = snapToleranceCm(pxPerCm, e.pointerType === 'touch');
@@ -161,7 +157,7 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
         callbacks.wallGuide(snap ? backEdge(snap, w.state) : null);
         // The gaps it is moved along: to the walls and wardrobes beside it, behind and in front, or the ceiling and units above and below.
         const sides = g.axis === 'x' ? ['left', 'right'] : g.axis === 'z' ? ['back', 'front'] : g.axis === 'y' ? ['top', 'bottom']
-            : (hangs(w.state) || (w.y || 0) > .5) ? ['left', 'right', 'top', 'bottom', 'back', 'front'] : ['left', 'right', 'back', 'front'];
+            : (hangsOnWall(w.state) || (w.y || 0) > .5) ? ['left', 'right', 'top', 'bottom', 'back', 'front'] : ['left', 'right', 'back', 'front'];
         callbacks.assist(/** @type {import('../../domain/studio/scene-gaps').GapSide[]} */ (sides));
         renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.position.set(w.x, w.y, w.z);

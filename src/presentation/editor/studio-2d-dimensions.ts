@@ -1,3 +1,4 @@
+import { cabinetBox } from '../../domain/pieces/pieces';
 import { studioWallItems, wallItemSegments } from '../../domain/studio/studio-wall-items';
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { wallFace, wallLine, type Studio } from '../../domain/studio/studio';
@@ -8,8 +9,9 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import type { Point2D } from './studio-2d-canvas';
 import { lengthWithUnit } from './length-unit-state';
 
+export { cabinetBox };
+
 export interface PlanDimension { id: string; a: Point2D; b: Point2D; text: string; accent?: boolean; offset: number; side?: 'left' | 'right'; priority?: number }
-export const cabinetBox = (c: EditorCabinet): PlacedBox => ({ id: c.id, x: c.x, z: c.z, y: c.y, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h });
 
 /** Fixture identities use a separate negative range for the shared measuring rule's numeric ids. */
 export function fixtureBoxes(studio: Studio | null): PlacedBox[] {

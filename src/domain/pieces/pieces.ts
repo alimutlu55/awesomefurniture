@@ -8,6 +8,7 @@ import { Furnishing, Rug } from './furnishing-piece';
 import { Fixture } from './fixture-piece';
 import { Cabinet, KitchenUnit, WallUnit, hangsOnWall, type CabinetData } from './cabinet-piece';
 import { isKitchen } from '../furniture/furniture';
+import { bodyBox } from './piece';
 import type { Body, PieceKey, Room } from './piece-model';
 
 export { Furnishing, Rug, Fixture, Cabinet, KitchenUnit, WallUnit };
@@ -16,6 +17,7 @@ export type { CabinetData };
 export const furnishingPiece = (f: StudioFurnishing): Furnishing => furnishingKind(f.kind)?.flat ? new Rug(f) : new Furnishing(f);
 export const fixturePiece = (f: StudioFixture) => new Fixture(f);
 export const cabinetPiece = (c: CabinetData) => !isKitchen(c.state) ? new Cabinet(c) : hangsOnWall(c.state) ? new WallUnit(c) : new KitchenUnit(c);
+export const cabinetBox = (c: CabinetData) => bodyBox(cabinetPiece(c).body(undefined), c.id);
 
 /** Every piece the room itself keeps (toilets, basins, beds, rugs), as pieces. */
 export function studioPieces(studio: Studio | undefined) {

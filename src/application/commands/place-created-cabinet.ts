@@ -1,3 +1,4 @@
+import { cabinetBox } from '../../domain/pieces/pieces';
 import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
@@ -56,7 +57,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
     if (shapeProblems(shape, w).length || ceilingClearance(studio, { ...candidate, w, d })(shape)) return null;
     return collision.cabinetCollides(candidate) ? null : candidate;
   }
-  const standing = scene.wardrobes.map(c => ({ ...c, w: c.state.w, d: c.state.d }));
+  const standing = scene.wardrobes.map(cabinetBox);
   let found: EditorCabinet | null = null;
   function search(w: number, d: number, wallId?: string) {
     if (wallId && size.from !== undefined) {

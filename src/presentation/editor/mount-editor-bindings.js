@@ -83,7 +83,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
     bindWardrobeAdd({ dom, inspector });
     bindCanvasGestureEscape({ dom, touch, interactions, interactionState, resources, lifetime, room: room.surface, kitchenArray });
     bindResetAll({ dom, inspector, shell, plannerState, sceneCommands, model });
-    bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, lifetime });
+    bindEscapeKey({ dom, interactions, inspector, planner, shell, interactionState, selectionState, model, commands, sceneCommands, history, make, lifetime });
     bindPanelMinimize({ dom, inspector, selectionState, lifetime });
     bindPanelHeaderDrag({ dom, camera, inspector, cameraState, selectionState, lifetime });
     bindPropertiesPanelClose({ dom, inspector });

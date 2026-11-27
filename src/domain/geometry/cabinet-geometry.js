@@ -64,11 +64,14 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         const { moving, fixed } = assembly(candidate);
         return moving.some(part => fixed.some(other => installationPair(part, other) && cabinetOverlaps(part, other)));
     }
-    /** What a wardrobe in this pose would run into: 'wall', 'fixture' (a toilet, a basin), 'wardrobe', or null. */
+    /** Which kind of solid would block the cabinet in this pose. */
     function cabinetObstruction(candidate) {
         const { moving, fixed } = assembly(candidate);
         const hit = fixed.find(other => moving.some(part => installationPair(part, other) && cabinetOverlaps(part, other))), id = String(hit?.id);
-        return !hit ? null : id.startsWith('wall:') ? 'wall' : id.startsWith('fixture:') ? 'fixture' : 'wardrobe';
+        if (!hit) return null;
+        if (id.startsWith('wall:')) return 'wall';
+        if (id.startsWith('fixture:')) return 'fixture';
+        return id.startsWith('furnishing:') ? 'furnishing' : 'wardrobe';
     }
     /** Size fields normally grow around the centre. At a wall, distribute growth
      * across the available gaps. Each growing candidate contains the old footprint. */

@@ -16,6 +16,7 @@ import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
 import type { TrackEvent } from '../analytics/analytics-port';
+import { cabinetBox } from '../../domain/pieces/pieces';
 import { createPieceCommands } from './piece-commands';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
@@ -33,7 +34,6 @@ interface StudioCommandOptions {
 export function createStudioCommands(getScene: () => EditorScene, { checkpoint, report, track }: StudioCommandOptions) {
   /** Collision against a given room (the current one, or one being considered). */
   const collisionWith = (room: Studio | undefined, others: () => readonly EditorCabinet[]) => createCabinetGeometry(others, () => studioObstacles(room));
-  const footprint = (c: EditorCabinet) => ({ w: c.state.w, d: c.state.d });
   /** Wardrobes that a room's walls would cut through. */
   const blockedBy = (room: Studio) => {
     const walls = collisionWith(room, () => []);
@@ -58,7 +58,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     for (const cabinet of scene.wardrobes) {
       const others = () => scene.wardrobes.filter(o => o.id !== cabinet.id).map(o => ({ ...o, ...poses.get(o.id) }));
       const collision = collisionWith(room, others);
-      const freed = pushOutOfWalls(room, cabinet, footprint(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
+      const freed = pushOutOfWalls(room, cabinet, cabinetBox(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
       if (!freed) {
         report('Your wardrobes do not fit in this room. Choose a bigger room, or move them apart first.');
         return false;
@@ -236,7 +236,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
     const room = getScene().studio;
     if (!room) return null;
     const collision = collisionWith(room, () => getScene().wardrobes);
-    return placeAgainstWall(room, footprint(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
+    return placeAgainstWall(room, cabinetBox(cabinet), pose => collision.cabinetCollides({ ...cabinet, ...pose }));
   }
 
   /** A new wardrobe against a wall: filling its free stretch (studio-placement.ts `wallSpot`), exactly `width`
@@ -244,7 +244,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
    * depth, or null with the reason. */
   function fillWall(cabinet: EditorCabinet, wallId: string, width?: number, from?: number) {
     const room = getScene().studio, others = getScene().wardrobes.filter(c => c !== cabinet);
-    const standing = others.map(c => ({ x: c.x, z: c.z, angle: c.angle, w: c.state.w, d: c.state.d }));
+    const standing = others.map(cabinetBox);
     const at = room && from !== undefined ? flushAgainst(room, wallId, from, { w: width ?? cabinet.state.w, d: cabinet.state.d }) : null;
     const spot = at ? { pose: at, w: width ?? cabinet.state.w, d: cabinet.state.d }
       : room && from === undefined ? wallSpot(room, wallId, standing, { min: width ?? MIN_WARDROBE_WIDTH, max: width ?? 400, depth: cabinet.state.d }) : null;
@@ -258,7 +258,7 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   function wallSnap(cabinet: EditorCabinet, pose: Pose, distance = 10, maxTurn = 20): Pose | null {
     const room = getScene().studio;
     if (!room) return null;
-    const snapped = snapToWall(room, pose, footprint(cabinet), distance, maxTurn);
+    const snapped = snapToWall(room, pose, cabinetBox(cabinet), distance, maxTurn);
     if (!snapped) return null;
     const collision = collisionWith(room, () => getScene().wardrobes);
     return collision.cabinetCollides({ ...cabinet, ...snapped }) ? null : snapped;

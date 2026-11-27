@@ -1,20 +1,20 @@
+import { cabinetBox } from '../../domain/pieces/pieces';
 import { sidePanelClearance } from '../../domain/kitchen/panel-clearance';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { smallestMove, type AlignTarget } from '../../domain/geometry/alignment';
 import { furnishingBoxes } from '../../domain/studio/furnishings/furnishing-place';
-import { alignments, cornerMoves, gapsAround, nearerWallEnds, wallEndsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
+import { alignments, cornerMoves, gapsAround, nearerWallEnds, wallEndsAround, type GapSide } from '../../domain/studio/scene-gaps';
 
 type Collision = { cabinetCollides(cabinet: EditorCabinet): boolean };
 
-const box = (c: EditorCabinet): PlacedBox => ({ id: c.id, x: c.x, z: c.z, y: c.y || 0, angle: c.angle, w: c.state.w, d: c.state.d, h: c.state.h });
 /** A gap this small beside a unit is one to fill; a bigger one is room for another cabinet. Centimetres. */
 export const FILL_REACH = 15;
 /** The gaps on the given sides of a wardrobe in a scene, and what it lines up with. With `wallEnds`, a side reads
  * to where the wall behind stops (its end, a doorway) when that comes first: for the eye, never for fillers or snaps. */
 export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[], { wallEnds = false } = {}) {
   // Gaps read to beds and other furnishings too (the room in front of a wardrobe); alignment is with wardrobes only.
-  const all = scene.wardrobes.map(box), found = gapsAround(box(cabinet), [...all, ...furnishingBoxes(scene.studio)], scene.studio, sides);
-  const raw = wallEnds ? nearerWallEnds(found, wallEndsAround(box(cabinet), scene.studio, sides)) : found;
+  const all = scene.wardrobes.map(cabinetBox), found = gapsAround(cabinetBox(cabinet), [...all, ...furnishingBoxes(scene.studio)], scene.studio, sides);
+  const raw = wallEnds ? nearerWallEnds(found, wallEndsAround(cabinetBox(cabinet), scene.studio, sides)) : found;
   const gaps = raw.map(g => {
     if (g.side !== 'left' && g.side !== 'right' || g.target === 'wall-end') return g;
     const reserve = sidePanelClearance(cabinet, scene.wardrobes.find(p => p.id === g.other), g.side === 'left' ? -1 : 1);
@@ -24,7 +24,7 @@ export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides:
     return { ...g, distance: Math.max(0, g.distance - reserve),
       from: { x: g.from.x + (g.to.x - g.from.x) * t, y: g.from.y, z: g.from.z + (g.to.z - g.from.z) * t } };
   });
-  return { gaps, aligned: alignments(box(cabinet), gaps, all) };
+  return { gaps, aligned: alignments(cabinetBox(cabinet), gaps, all) };
 }
 
 const turned = (a: EditorCabinet, b: EditorCabinet) => Math.abs(((a.angle - b.angle) % 360 + 540) % 360 - 180) > .5;
@@ -96,7 +96,7 @@ export function createAlignCommands(getScene: () => EditorScene, collision: Coll
     }
     // A quarter turn from a neighbour (an L-shaped run): a side in line with its front, or the front in line with its side.
     if (depth) for (const o of getScene().wardrobes) {
-      const c = cornerMoves(box(cabinet), box(o));
+      const c = cornerMoves(cabinetBox(cabinet), cabinetBox(o));
       if (!touchingLeft && !touchingRight) across.push(...c.across.map(m => m.move));
       along.push(...c.along.map(m => m.move));
     }

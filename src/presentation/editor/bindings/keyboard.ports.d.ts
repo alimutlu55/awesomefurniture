@@ -5,9 +5,12 @@ readonly interactions: Readonly<Pick<ReturnType<typeof import('../editor-gesture
 readonly inspector: Readonly<Pick<ReturnType<typeof import('../inspector-presenter.js').createInspectorPresenter>, 'clearFocus' | 'goUp' | 'hidePop' | 'update'>>;
 readonly planner: Readonly<Pick<ReturnType<typeof import('../planner-presenter.js').createPlannerPresenter>, 'closeWizard'>>;
 readonly shell: Readonly<Pick<ReturnType<typeof import('../editor-shell.js').createEditorShell>, 'toast'>>;
-readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'drag' | 'moveMode' | 'moved' | 'ptrs'>;
-readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'leaf'>;
-readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene'>;
+readonly interactionState: Pick<ReturnType<typeof import('../interaction-state.js').createInteractionState>, 'drag' | 'moveMode' | 'moved' | 'ptrs' | 'wardrobeGesture' | 'rotationGesture'>;
+readonly selectionState: Pick<ReturnType<typeof import('../selection-state.js').createSelectionState>, 'deep' | 'focusOn' | 'pillOn' | 'leaf' | 'room' | 'studioView'>;
+readonly model: Pick<ReturnType<typeof import('../../../application/projects/editor-model.js').createEditorModel>, 'activeCabinet' | 'scene' | 'snapshot'>;
 readonly commands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/design-commands.js').createDesignCommands>, 'addMod' | 'moveDividerTo' | 'removeTop' | 'run'>>;
+readonly sceneCommands: Readonly<Pick<ReturnType<typeof import('../../../application/commands/scene-commands').createSceneCommands>, 'previewRotation' | 'settleCabinet' | 'restorePose'>>;
+readonly history: { checkpoint(snapshot: string): void };
+readonly make: { readonly active: boolean };
 readonly lifetime: Readonly<Pick<ReturnType<typeof import('../../viewport/editor-lifetime.js').createEditorLifetime>, 'listen'>>;
 }

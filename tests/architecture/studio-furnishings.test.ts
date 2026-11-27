@@ -1,5 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createEditorState } from '../../src/application/projects/editor-state';
+import { regularShape } from '../../src/domain/wardrobe/shape/wardrobe-shape';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
@@ -61,6 +63,10 @@ test('wardrobes stop at a bed, and a bed is refused where a wardrobe stands', ()
   const e = editor(), bed = e.item(e.commands.addStudioFurnishing('bed', 'w1')!);
   const solids = createCabinetGeometry(() => [], () => studioObstacles(e.studio()));
   assert.ok(solids.cabinetCollides({ x: bed.x, z: bed.z, y: 0, angle: 0, state: { w: 100, d: 60, h: 220 } }));
+  const cabinet = { id: 1, name: 'Wardrobe', x: 0, y: 0, z: 0, angle: 0, state: { ...createEditorState(), w: 100, d: 60, h: 220 } };
+  e.model.scene.wardrobes.push(cabinet);
+  e.model.scene.activeWardrobe = cabinet.id;
+  assert.match(e.commands.shapeEditProblem(regularShape(100, 220), { w: 100, x: bed.x, z: bed.z }) ?? '', /run into room furniture/);
   const moved = moveFurnishing(e.studio(), bed.id, { x: bed.x, z: bed.z + 200, angle: bed.angle })!;
   assert.ok(studioProblems(moved).some(p => /runs into a wall/.test(p)), 'out through the front wall');
 });
