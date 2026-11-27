@@ -10,7 +10,7 @@ import type { FixtureTarget } from './fixture-drag';
 import type { RoomMeasure } from './studio-editor.ports';
 
 type Point = { x: number; y: number; z: number };
-type Commands = Readonly<Pick<ReturnType<typeof import('../../application/commands/fixture-commands').createFixtureCommands>,
+type Commands = Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>,
   'addStudioFixture' | 'editFixture' | 'fixtureProblem' | 'duplicateStudioFixture' | 'removeStudioFixture'>>;
 interface Drag {
   id: string; pointer: number; target: HTMLElement; snapshot: string; original: Studio; at: Point; client: { x: number; y: number };

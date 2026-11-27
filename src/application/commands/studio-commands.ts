@@ -15,8 +15,8 @@ import { cornerDegree, STUDIO_LIMITS, wallFace, wallLine } from '../../domain/st
 import type { OpeningKind, Studio } from '../../domain/studio/studio';
 import { isWallUtility, openingNoun } from '../../domain/studio/wall-utilities';
 import { MIN_WARDROBE_WIDTH } from '../../domain/wardrobe/cabinet-limits';
-import { createFixtureCommands } from './fixture-commands';
-import { createFurnishingCommands } from './furnishing-commands';
+import type { TrackEvent } from '../analytics/analytics-port';
+import { createPieceCommands } from './piece-commands';
 
 /** Wardrobes that go with a moving wall: where they stood, and the room before the move. */
 export interface Carried { readonly from: Studio; readonly wall: string; readonly list: readonly { id: number; x: number; z: number }[] }
@@ -25,11 +25,12 @@ interface StudioCommandOptions {
   checkpoint: () => void;
   discardCheckpoint: () => void;
   report: (message: string) => void;
+  track?: TrackEvent;
 }
 
 /** Room commands: place a built-in studio, edit its walls, and keep wardrobes out of the walls.
  * Every change is checked before it is committed and refused with a reason. */
-export function createStudioCommands(getScene: () => EditorScene, { checkpoint, report }: StudioCommandOptions) {
+export function createStudioCommands(getScene: () => EditorScene, { checkpoint, report, track }: StudioCommandOptions) {
   /** Collision against a given room (the current one, or one being considered). */
   const collisionWith = (room: Studio | undefined, others: () => readonly EditorCabinet[]) => createCabinetGeometry(others, () => studioObstacles(room));
   const footprint = (c: EditorCabinet) => ({ w: c.state.w, d: c.state.d });
@@ -264,5 +265,5 @@ export function createStudioCommands(getScene: () => EditorScene, { checkpoint, 
   }
 
   return { placeStudio, addStudioRoom, editStudio, resizeWallLength, studioProblem, standingAgainst, carryWardrobes, addStudioWall, addStudioOpening, addStudioCeiling, placeNewCabinet, fillWall, wallSnap,
-    ...createFixtureCommands(getScene, { checkpoint, report }), ...createFurnishingCommands(getScene, { checkpoint, report }) };
+    ...createPieceCommands(getScene, { checkpoint, report, track }) };
 }

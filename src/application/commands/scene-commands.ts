@@ -1,3 +1,4 @@
+import { noopAnalytics, type TrackEvent } from '../analytics/analytics-port';
 import { reconcileInstallation } from '../projects/installation-reconciliation';
 import { createKitchenConstructionCommands } from './kitchen-construction';
 import { growRearWithFront } from './front-growth';
@@ -27,14 +28,14 @@ import { createFromTemplate } from '../../domain/wardrobe/shape/shape-templates'
 import { friendlyProblem, resolveShape, regularShape, shapePanels, maxHeight, resizeShape, shapeProblems, type ShapeTemplateId, type WardrobeShape } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { furnitureModule, isKitchen } from '../../domain/furniture/furniture';
 export interface ShapeFrame { w: number; x: number; z: number }
-/** Whole-cabinet edits share the same centimetre model and collision rules. */
 interface SceneCommandOptions {
     initialDesign?: () => EditorState;
     checkpoint?: () => void;
     discardCheckpoint?: () => void;
     report?: (message: string) => void;
+    track?: TrackEvent;
 }
-export function createSceneCommands(getScene: () => EditorScene, { initialDesign = createEditorState, checkpoint = () => { }, discardCheckpoint = () => { }, report = () => { } }: SceneCommandOptions = {}) {
+export function createSceneCommands(getScene: () => EditorScene, { initialDesign = createEditorState, checkpoint = () => { }, discardCheckpoint = () => { }, report = () => { }, track = noopAnalytics.track }: SceneCommandOptions = {}) {
     let spare: EditorCabinet | null = null;
     const active = (): EditorCabinet => { if (!getScene().wardrobes.length) return spare ??= emptyCabinet();
         const cabinet = getScene().wardrobes.find(w => w.id === getScene().activeWardrobe); if (!cabinet)
@@ -42,7 +43,7 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
     const collision = createCabinetGeometry(() => getScene().wardrobes, () => studioObstacles(getScene().studio));
     const geometry = createWardrobeGeometry(() => active().state);
     const design = createDesignCommands(() => active().state, { report });
-    const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report });
+    const studio = createStudioCommands(getScene, { checkpoint, discardCheckpoint, report, track });
     const ceilings = createCeilingCommands(getScene, report);
     /** A cabinet with nothing to stand beside goes where a new wardrobe would: beside the others, or against a free
      * wall (the wall in view, from the point in view, when `placement` names them). */
@@ -61,7 +62,6 @@ export function createSceneCommands(getScene: () => EditorScene, { initialDesign
         const other = getScene().wardrobes.find(c => c.id !== candidate.id && collision.cabinetOverlaps(candidate, c));
         return change + ' would overlap another ' + (other ? furnitureModule(other.state).noun : 'wardrobe') + '. Move it first.';
     };
-    /** The same constraints apply to numeric edits, keyboard nudges and live handles. */
     const shapeEditProblem = (shape: WardrobeShape, frame?: ShapeFrame): string | null => {
         const cabinet = active(), w = frame?.w ?? cabinet.state.w;
         const [minW, maxW] = furnitureModule(cabinet.state).sizes(cabinet.state).w;

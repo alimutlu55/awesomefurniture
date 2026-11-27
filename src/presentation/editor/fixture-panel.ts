@@ -11,7 +11,7 @@ interface FixturePanelPorts {
   document: Pick<Document, 'createElement'>;
   getStudio(): Studio | undefined;
   getSelection(): RoomSelection;
-  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/fixture-commands').createFixtureCommands>, 'editFixture' | 'setFixtureSetup'>>;
+  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'editFixture' | 'setFixtureSetup'>>;
   refresh(): void;
   listen(target: EventTarget, event: string, handler: (e: Event) => void): void;
 }

@@ -13,7 +13,7 @@ import { turnButtonAt } from '../viewport/turn-ring';
 import { measureNumber, unitSuffix } from './editor-format.js';
 
 type Point = { x: number; y: number; z: number };
-type Commands = Readonly<Pick<ReturnType<typeof import('../../application/commands/furnishing-commands').createFurnishingCommands>,
+type Commands = Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>,
   'editFurnishing' | 'furnishingProblem' | 'turnStudioFurnishing' | 'duplicateStudioFurnishing' | 'removeStudioFurnishing'>>;
 interface Drag {
   id: string; pointer: number; target: HTMLElement; snapshot: string; original: Studio; ground: Point; client: { x: number; y: number };

@@ -22,8 +22,6 @@ const COUNTED: Readonly<Record<string, Counter>> = {
   addStudioWall: (track) => track('studio_room_edited', { action: 'wall_added', detail_kind: 'wall' }),
   addStudioOpening: room('opening_added'),
   addStudioCeiling: room('ceiling_shape'),
-  addStudioFixture: room('fixture_added'),
-  addStudioFurnishing: room('furnishing_added'),
 };
 
 /**

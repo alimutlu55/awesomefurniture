@@ -147,3 +147,21 @@ test('furnishings follow the rules every piece shares: no doorways, turned out o
   assert.equal(snapTurn(87), 90, 'a quarter turn is caught within 5°');
   assert.equal(snapTurn(87, true), 87, 'Shift turns exactly');
 });
+
+test('successful room piece adds and copies each count once, including when a placement search rejects candidates', () => {
+  const model = createEditorModel({ wardrobes: [], activeWardrobe: 0, nextWardrobeId: 1, studio: rectangleStudio(600, 450) });
+  const events: unknown[] = [];
+  let checkpoints = 0;
+  const commands = createSceneCommands(() => model.scene, { checkpoint: () => { checkpoints++; }, track: (event, props) => events.push({ event, ...props }) });
+  const basin = commands.addStudioFixture('basin', 'w1', 100)!;
+  const bed = commands.addStudioFurnishing('bedside', 'w3')!;
+  assert.ok(basin && bed);
+  assert.ok(commands.duplicateStudioFixture(basin));
+  assert.ok(commands.duplicateStudioFurnishing(bed));
+  assert.equal(commands.addStudioFixture('basin', 'missing'), null);
+  assert.equal(commands.duplicateStudioFurnishing('missing'), null);
+  assert.equal(checkpoints, 4);
+  assert.deepEqual(events, ['fixture', 'furnishing', 'fixture', 'furnishing'].map(family => ({
+    event: 'studio_room_edited', action: family + '_added', detail_kind: family === 'fixture' ? 'basin' : 'bedside',
+  })));
+});

@@ -10,7 +10,7 @@ interface FurnishingPanelPorts {
   document: Pick<Document, 'createElement'>;
   getStudio(): Studio | undefined;
   getSelection(): RoomSelection;
-  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/furnishing-commands').createFurnishingCommands>, 'editFurnishing'>>;
+  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'editFurnishing'>>;
   refresh(): void;
   listen(target: EventTarget, event: string, handler: (e: Event) => void): void;
 }
