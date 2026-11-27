@@ -4,8 +4,8 @@ import { automaticInstallationParts } from '../kitchen/automatic-installation';
 import { cornerSweepSolids } from '../kitchen/corner-sweep';
 import { SCENE_EXTENT } from '../furniture/piece-envelope';
 import { worktopSolids } from '../kitchen/worktop-solids';
-// Centimetres: tolerate only 0.0001 mm of serialized transform noise, never a real 1 mm joint.
-const CONTACT = 1e-5;
+import { BOX_CONTACT as CONTACT, beforeBoxContact, boxAxes as cabinetAxes, boxGap as cabinetGap,
+    boxRadius as cabinetRadius, boxesOverlap as cabinetOverlaps, firstBoxContact } from './box-collision';
 /** Collision rules receive scene data explicitly; no editor or renderer state.
  * Wardrobes collide with each other and with fixed obstacles (the room's walls). Obstacles never move
  * and are not wardrobes: scene bounds and wardrobe lists ignore them.
@@ -42,23 +42,6 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
     function cabinetBounds(w) {
         const a = w.angle * Math.PI / 180, c = Math.abs(Math.cos(a)), s = Math.abs(Math.sin(a));
         return { x: w.x, z: w.z, hw: (w.state.w * c + w.state.d * s) / 2, hd: (w.state.w * s + w.state.d * c) / 2, h: w.state.h + (w.y || 0) };
-    }
-    function cabinetAxes(w) {
-        const a = w.angle * Math.PI / 180;
-        return [{ x: Math.cos(a), z: -Math.sin(a) }, { x: Math.sin(a), z: Math.cos(a) }];
-    }
-    function cabinetRadius(w, axis) {
-        const [u, v] = cabinetAxes(w);
-        return Math.abs(u.x * axis.x + u.z * axis.z) * w.state.w / 2 + Math.abs(v.x * axis.x + v.z * axis.z) * w.state.d / 2;
-    }
-    function cabinetGap(a, b) {
-        if ((a.y || 0) + a.state.h <= (b.y || 0) + CONTACT || (b.y || 0) + b.state.h <= (a.y || 0) + CONTACT) {
-            return Infinity;
-        }
-        return Math.max(...[...cabinetAxes(a), ...cabinetAxes(b)].map(axis => Math.abs((a.x - b.x) * axis.x + (a.z - b.z) * axis.z) - cabinetRadius(a, axis) - cabinetRadius(b, axis)));
-    }
-    function cabinetOverlaps(a, b) {
-        return cabinetGap(a, b) < -CONTACT;
     }
     function cabinetCollides(candidate) {
         const { moving, fixed } = assembly(candidate);
@@ -120,64 +103,11 @@ export function createCabinetGeometry(getCabinets, getObstacles = () => []) {
         for (let pass = 0; pass < 3; pass++) {
             const dist = Math.hypot(remainingDelta.x, remainingDelta.y, remainingDelta.z);
             if (dist < 1e-5) break;
-            let limit = 1;
-            let hitNormal = null;
             const targetPose = { ...w, x: currentPos.x + remainingDelta.x, y: currentPos.y + remainingDelta.y, z: currentPos.z + remainingDelta.z };
             const movingParts = owned(targetPose).map(p => ({ ...p, x: p.x - remainingDelta.x, y: (p.y || 0) - remainingDelta.y, z: p.z - remainingDelta.z }));
-            const fixedParts = solids(targetPose);
-            for (const part of movingParts) for (const other of fixedParts) {
-                if (other.id === w.id || !installationPair(part, other)) {
-                    continue;
-                }
-                let enter = -Infinity, leave = Infinity;
-                let enterNormal = null;
-                const constraints = [...cabinetAxes(part), ...cabinetAxes(other)].map(axis => ({
-                    offset: (part.x - other.x) * axis.x + (part.z - other.z) * axis.z,
-                    velocity: remainingDelta.x * axis.x + remainingDelta.z * axis.z,
-                    radius: cabinetRadius(part, axis) + cabinetRadius(other, axis),
-                    axis: { x: axis.x, y: 0, z: axis.z } }));
-                constraints.push({
-                    offset: (part.y || 0) + part.state.h / 2 - (other.y || 0) - other.state.h / 2,
-                    velocity: remainingDelta.y,
-                    radius: (part.state.h + other.state.h) / 2,
-                    axis: { x: 0, y: 1, z: 0 } });
-                for (const { offset, velocity, radius, axis } of constraints) {
-                    if (Math.abs(velocity) < 1e-10) {
-                        if (Math.abs(offset) >= radius - CONTACT) {
-                            enter = Infinity;
-                            break;
-                        }
-                    }
-                    else {
-                        const a = (-radius - offset) / velocity, b = (radius - offset) / velocity;
-                        const entryTime = Math.min(a, b);
-                        if (entryTime > enter) {
-                            enter = entryTime;
-                            const sgn = velocity > 0 ? -1 : 1;
-                            enterNormal = { x: axis.x * sgn, y: axis.y * sgn, z: axis.z * sgn };
-                        }
-                        leave = Math.min(leave, Math.max(a, b));
-                    }
-                }
-                // Imported/legacy overlaps may move out or slide along their existing contact, but
-                // must not be driven deeper through a board while the sweep starts inside it.
-                if (enter < 0 && leave > 0) {
-                    const gap = Math.max(...constraints.map(c => Math.abs(c.offset) - c.radius));
-                    const inward = constraints.find(c => Math.abs(c.offset) - c.radius >= gap - CONTACT
-                        && Math.sign(c.offset) * c.velocity < -1e-10);
-                    if (gap < -CONTACT && inward) {
-                        limit = 0;
-                        const sign = Math.sign(inward.offset);
-                        hitNormal = { x: sign * inward.axis.x, y: sign * inward.axis.y, z: sign * inward.axis.z };
-                        continue;
-                    }
-                }
-                if (enter < leave - 1e-10 && leave > 1e-10 && enter <= limit && enter >= -CONTACT / Math.max(1, dist)) {
-                    limit = Math.max(0, enter);
-                    hitNormal = enterNormal;
-                }
-            }
-            const t = limit < 1 ? Math.max(0, limit - 1e-7) : 1;
+            const hit = firstBoxContact(movingParts, solids(targetPose), remainingDelta, (part, other) => other.id !== w.id && installationPair(part, other));
+            const limit = hit?.fraction ?? 1, hitNormal = hit?.normal;
+            const t = beforeBoxContact(limit);
             currentPos = { x: currentPos.x + remainingDelta.x * t, y: currentPos.y + remainingDelta.y * t, z: currentPos.z + remainingDelta.z * t };
             if (limit >= 1 || !hitNormal) break;
             const unspent = {

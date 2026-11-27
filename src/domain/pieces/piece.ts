@@ -5,7 +5,7 @@
  */
 import type { Studio } from '../studio/studio';
 import { wallLine } from '../studio/studio';
-import { createCabinetGeometry } from '../geometry/cabinet-geometry.js';
+import { beforeBoxContact, boxesOverlap, firstBoxContact } from '../geometry/box-collision';
 import { gapsAround, type PlacedBox } from '../studio/scene-gaps';
 import { groundedShapes, wallObstacles, type Obstacle } from '../studio/studio-obstacles';
 import { placeAgainstWall, placeOnRoomFloor } from '../studio/studio-placement';
@@ -31,9 +31,6 @@ export function changePieceLook<D extends object>(data: D, look: Partial<D>): D 
   for (const key of Object.keys(look) as (keyof D)[]) if (look[key] === undefined) delete next[key];
   return next;
 }
-
-const geometry = createCabinetGeometry(() => []);
-const overlaps = (a: Obstacle, b: Obstacle) => geometry.cabinetOverlaps(a, b);
 
 /** The floor a person walks through at each door and archway: as wide as it, 50 cm into the room. */
 export function doorways(studio: Studio): Obstacle[] {
@@ -101,15 +98,21 @@ export abstract class Piece<D> implements Placeable, Collidable, Measurable, Res
   }
 
   protected resolveMove(room: Room, to: Aim, options: MoveOptions): MoveOutcome {
-    const from = options.from ?? this.body(room.studio);
+    const body = this.body(room.studio), from = options.from ?? body, y = from.y ?? body.y;
     const problem = options.problem ?? ((pose: Pose) => this.positionProblem(room, pose));
+    const delta = { x: to.pose.x - from.x, y: (to.pose.y ?? y) - y, z: to.pose.z - from.z };
     const candidate = (t: number): Pose => ({
-      x: from.x + (to.pose.x - from.x) * t, z: from.z + (to.pose.z - from.z) * t, angle: to.pose.angle,
-      y: (from.y ?? 0) + ((to.pose.y ?? from.y ?? 0) - (from.y ?? 0)) * t,
+      x: from.x + delta.x * t, y: y + delta.y * t, z: from.z + delta.z * t, angle: to.pose.angle,
     });
-    const goal = candidate(1), reason = problem(goal);
+    const fixed = this.environmentObstacles(room).flatMap(({ boxes, reason }) => boxes.map(box => ({ ...box, reason })));
+    if (this.blocks) fixed.push(...this.otherBodies(room).map(other => ({ ...shrink(bodyObstacle(other)), reason: this.pieceCollisionReason(other) })));
+    const moving = this.collisionBox({ ...body, ...from, y, angle: to.pose.angle });
+    const hit = firstBoxContact([moving], fixed, delta), limit = hit?.fraction ?? 1;
+    const stop = beforeBoxContact(limit), goal = candidate(stop), invalid = problem(goal);
+    const reason = invalid ?? (limit < 1 ? hit?.obstacle.reason : undefined);
     if (!reason) return { value: goal, lock: to.lock, guides: to.guides };
-    const value = options.exact ? null : furthestValid(candidate, pose => !problem(pose)).room;
+    // The input may round the contact pose or apply extra constraints. Search only the already swept part of the path.
+    const value = options.exact ? null : invalid ? furthestValid(t => candidate(t * stop), pose => !problem(pose)).room : goal;
     return { value, reason, lock: to.lock, guides: [] };
   }
   /** In other pieces' way. A rug is not. */
@@ -127,17 +130,34 @@ export abstract class Piece<D> implements Placeable, Collidable, Measurable, Res
   protected collisionBox(body: Body) { return shrink(bodyObstacle(body)); }
 
   clashes(room: Room, body = this.body(room.studio)): string[] {
-    const studio = room.studio, me = this.collisionBox(body), out: string[] = [];
-    if (studio && wallObstacles(studio).some(o => overlaps(me, o))) return [`The ${this.noun} runs into a wall. Move it into the room.`];
+    const me = this.collisionBox(body), [walls, ...obstacles] = this.environmentObstacles(room), out: string[] = [];
+    if (walls?.boxes.some(o => boxesOverlap(me, o))) return [walls.reason];
     if (!this.blocks) return out;
-    if (studio && groundedShapes(studio).some(o => overlaps(me, o))) out.push(`The ${this.noun} runs into a pillar or boxing. Move it.`);
-    if (studio && this.keepsDoorwaysClear && doorways(studio).some(o => overlaps(me, o))) out.push(`The ${this.noun} stands in a doorway. Move it.`);
+    for (const { boxes, reason } of obstacles) if (boxes.some(o => boxesOverlap(me, o))) out.push(reason);
     return [...out, ...this.pieceClashes(room, me)];
   }
 
+  private environmentObstacles({ studio }: Room) {
+    if (!studio) return [];
+    const obstacles = [{ boxes: wallObstacles(studio), reason: `The ${this.noun} runs into a wall. Move it into the room.` }];
+    if (this.blocks) {
+      obstacles.push({ boxes: groundedShapes(studio), reason: `The ${this.noun} runs into a pillar or boxing. Move it.` });
+      if (this.keepsDoorwaysClear) obstacles.push({ boxes: doorways(studio), reason: `The ${this.noun} stands in a doorway. Move it.` });
+    }
+    return obstacles;
+  }
+
+  private otherBodies(room: Room): Body[] {
+    return room.bodies.filter(b => !sameKey(b.key, this.key) && this.collidesWith(b));
+  }
+
+  private pieceCollisionReason(other: Body): string {
+    return `The ${this.noun} runs into the ${other.noun}. Move one of them.`;
+  }
+
   protected pieceClashes(room: Room, me = shrink(bodyObstacle(this.body(room.studio)))): string[] {
-    const other = room.bodies.find(b => !sameKey(b.key, this.key) && this.collidesWith(b) && overlaps(me, shrink(bodyObstacle(b))));
-    return other ? [`The ${this.noun} runs into the ${other.noun}. Move one of them.`] : [];
+    const other = this.otherBodies(room).find(b => boxesOverlap(me, shrink(bodyObstacle(b))));
+    return other ? [this.pieceCollisionReason(other)] : [];
   }
 
   /** The free floor on each side to the walls and every other piece, from the middle of each side, short where it is

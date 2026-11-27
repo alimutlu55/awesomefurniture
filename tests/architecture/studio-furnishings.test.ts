@@ -8,7 +8,7 @@ import { rectangleStudio } from '../../src/domain/studio/studio-templates';
 import { wallLine } from '../../src/domain/studio/studio';
 import type { Studio } from '../../src/domain/studio/studio';
 import { addOpening, moveWall, translateStudio } from '../../src/domain/studio/studio-edit';
-import { furnishingPiece } from '../../src/domain/pieces/pieces';
+import { furnishingPiece, roomOf } from '../../src/domain/pieces/pieces';
 import { snapTurn } from '../../src/domain/pieces/piece-motion';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
 import { studioObstacles } from '../../src/domain/studio/studio-obstacles';
@@ -57,6 +57,30 @@ test('a bedside table goes beside the bed against the same wall; a rug goes unde
   assert.ok(!studioObstacles(e.studio()).some(o => o.id === 'furnishing:' + rug.id), 'a rug is never an obstacle');
   assert.ok(studioObstacles(e.studio()).some(o => o.id === 'furnishing:' + bed.id), 'a bed is');
   assert.deepEqual(studioProblems(e.studio()), []);
+});
+
+test('every loose furnishing stops at the wall swept by a move that ends on the far side', () => {
+  for (const kind of FURNISHINGS) {
+    const e = editor(addFurnishing(room(), kind.key, { x: 0, z: 175, angle: 0 })!);
+    const initial = e.studio().furnishings![0]!, key = { family: 'furnishing', id: initial.id } as const;
+    const destination = { x: 0, z: -175, angle: 0 };
+    assert.deepEqual(studioProblems(moveFurnishing(e.studio(), initial.id, destination)!), [], 'the far end alone is clear');
+    assert.ok(e.commands.commitPiece(key, { action: 'move', to: destination }));
+    assert.ok(Math.abs(backFromWall(e.studio(), e.item(initial.id))) < .2, `${kind.name} stops at the inner wall face`);
+    assert.equal(e.history.length, 1);
+    assert.deepEqual(studioProblems(e.studio()), []);
+  }
+});
+
+test('the furnishing sweep stops at other furniture and keeps rugs able to move underneath', () => {
+  const base = addFurnishing(room(), 'bedside', { x: -116, z: 175, angle: 0 })!;
+  const studio = addFurnishing(base, 'rug', { x: -116, z: 175, angle: 0 })!;
+  const cabinet = { id: 1, name: 'Wardrobe', x: 0, y: 0, z: 175, angle: 0, state: { ...createEditorState(), w: 70 } };
+  const scene = roomOf(studio, [cabinet]), [table, rug] = studio.furnishings!;
+  const destination = { x: 116, z: 175, angle: 0 }, tableMove = furnishingPiece(table!).move(scene, destination, { free: true });
+  assert.ok(Math.abs(tableMove.value!.x + cabinet.state.w / 2 + table!.width / 2) < .3);
+  assert.match(tableMove.reason ?? '', /runs into the wardrobe/);
+  assert.equal(furnishingPiece(rug!).move(scene, destination, { free: true }).value?.x, destination.x);
 });
 
 test('wardrobes stop at a bed, and a bed is refused where a wardrobe stands', () => {
