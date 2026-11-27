@@ -1,15 +1,13 @@
 import { PANEL as T } from '../../wardrobe/catalog.js';
-import { shelfContact, uprightContact } from './board-contact.js';
+import { FACE_CONTACT_CM, shelfContact, uprightContact } from './board-contact.js';
 /** @typedef {ReturnType<typeof import('./sizes.js').createSizesRules>} SizesRules */
 /** @typedef {ReturnType<typeof import('./ceiling.js').createCeilingRules>} CeilingRules */
 /** @typedef {ReturnType<typeof import('./layout.js').createLayoutRules>} LayoutRules */
 /** @typedef {ReturnType<typeof import('./dividers.js').createDividersRules>} DividersRules */
 /** @typedef {ReturnType<typeof import('./fit.js').createFitRules>} FitRules */
-/** Within this distance (cm) two faces touch: the part is attached. */
-const TOUCH = .6;
 /** Shortest shelf a board can be stretched or squeezed to, in cm. */
 const MIN_SHELF = 15;
-const near = (a, b) => Math.abs(a - b) <= TOUCH;
+const near = (a, b) => Math.abs(a - b) <= FACE_CONTACT_CM;
 const overlaps = (a0, a1, b0, b1) => a0 < b1 - .01 && b0 < a1 - .01;
 /** What moves with a board, as a carpenter builds it. One rule for every board and fitting:
  * - A board fits the wardrobe where it stands: a vertical divider stands on what is below it and reaches up

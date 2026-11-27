@@ -102,9 +102,9 @@ test('upright distances measure openings past attached shelves on both sides bef
  run('setDividerClearance(0,"before",30)');near(c.S.dividers[0].x,30.9);gaps(30,32.5);
  run('setDividerClearance(0,"after",28)');near(c.S.dividers[0].x,35.4);gaps(34.5,28);
 });
-test('upright measurements use the same contact tolerance as attached fittings and shelves',()=>{
+test('upright measurements reach past the fittings and shelves attached to its faces',()=>{
  const {c,run}=fixture([{k:'drawer',h:30,w:31.1,x:0,y:0}]);
- c.S.dividers=[full(32),{i:1,orientation:'horizontal',x0:33.3,x1:BW,y:120}];
+ c.S.dividers=[full(32),{i:1,orientation:'horizontal',x0:32.9,x1:BW,y:120}];
  let m=run('dividerMeasurements(0)');near(m.before,31.1);near(m.after,31.4);
  assert.equal(run('moveDividerTo(0,36)'),'all');
  m=run('dividerMeasurements(0)');near(m.before,35.1);near(m.after,27.4);
@@ -131,11 +131,11 @@ test('shelf distances measure past attached uprights to neighbouring shelves whi
  run('setDividerClearance(0,"before",30)');gaps(30,106.4);
  run('setDividerClearance(0,"after",40)');gaps(96.4,40);
 });
-test('shelf distances use attachment tolerance and still stop at fixed uprights and fittings',()=>{
+test('shelf distances reach past attached uprights and still stop at fixed uprights and fittings',()=>{
  const {c,run}=fixture([{k:'drawer',h:30,w:20,x:0,y:0}]);
  c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:99.1,y1:100.9}},
-  {i:1,orientation:'vertical',x:32,y0:101.3,y1:TOP},
-  {i:1,orientation:'vertical',x:32,y0:0,y1:98.7}];
+  {i:1,orientation:'vertical',x:32,y0:100.9,y1:TOP},
+  {i:1,orientation:'vertical',x:32,y0:0,y1:99.1}];
  let m=run('dividerMeasurements(0)');near(m.before,69.1);near(m.after,117.5);
  // A neighbouring upright with a real gap does not move with the shelf.
  c.S.dividers.push({i:1,orientation:'vertical',x:50,y0:150,y1:TOP});
@@ -177,6 +177,18 @@ test('fittings and dividers standing on a shelf ride with it; a divider reaching
  near(c.S.dividers[0].y,80);near(c.S.secs[1][0].y,80.9);
  near(c.S.dividers[1].y0,80.9);near(c.S.dividers[1].y1,TOP);
  near(c.S.dividers[2].y0,0);near(c.S.dividers[2].y1,79.1);
+});
+test('a shelf or fitting a few millimetres away is not attached: it stays where it is',()=>{
+ // Two shelves 0.5 cm apart are two shelves, not one: moving the lower one leaves the upper one in place.
+ const {c,run}=fixture([{k:'shelf',h:20,w:20,x:40,y:101.4}]);
+ c.S.dividers=[{i:1,orientation:'horizontal',x0:0,x1:BW,y:100,area:{x0:0,x1:BW,y0:0,y1:TOP}},
+  {i:1,orientation:'vertical',x:20,y0:101.4,y1:TOP,area:{x0:0,x1:BW,y0:101.4,y1:TOP}}];
+ assert.equal(run('moveDividerTo(0,80)'),true,'only the board moved');
+ near(c.S.dividers[0].y,80);near(c.S.secs[1][0].y,101.4);near(c.S.dividers[1].y0,101.4);
+ // A fitting moved leaves a fitting 0.5 cm above it where it was.
+ const f=fixture([{k:'drawer',h:40,w:30,x:0,y:0},{k:'shelf',h:20,w:20,x:5,y:40.5}]);
+ f.c.S.item=0;f.run('applyMove(planFreeMove({i:1,j:0},1,{x:30,y:0}))');
+ const shelf=f.c.S.secs[1].find(it=>it.k==='shelf');near(shelf.x,5);near(shelf.y,40.5);
 });
 test('a divider made shorter keeps its length when a slope cuts it on the way and comes back',()=>{
  const c=vm.createContext({S:{w:200,h:230,d:60,n:1,wt:[100,100,100,100,100,100],secs:[[],[],[],[],[],[]],sel:0,item:-1,dividers:[],shape:{template:'sloped',top:[{x:0,y:100},{x:200,y:230}]}},G:{},act(fn){fn()},toast(){},deep:true,pillOn:true});
