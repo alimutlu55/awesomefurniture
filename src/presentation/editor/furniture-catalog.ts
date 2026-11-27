@@ -27,8 +27,7 @@ export function renderFurnitureCatalog(host: HTMLElement, products: HTMLElement,
       + rooms.map(([key, label]) => `<button type="button" data-fc-room="${key}" aria-pressed="${state.room === key}">${esc(label)}</button>`).join('')
       + '</div><div class="fc-tiles">' + tiles.map(c => {
         const items = cards(c.id), art = items[0]?.querySelector('svg')?.outerHTML ?? '';
-        return `<button type="button" class="fc-tile" data-fc-category="${c.id}">${art}<b>${esc(c.label)}</b>`
-          + `<small>${items.length} ${items.length === 1 ? 'design' : 'designs'}</small></button>`;
+        return `<button type="button" class="fc-tile" data-fc-category="${c.id}" title="${esc(c.label)}">${art}<b>${esc(c.label)}</b></button>`;
       }).join('') + '</div>';
   }
   host.onclick = event => {
