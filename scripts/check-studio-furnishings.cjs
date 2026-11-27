@@ -1,6 +1,6 @@
 // Furnishings (beds, rugs) in the real editor, on a desktop with a mouse and a phone with touch: add a Rectangle room,
 // then Studio › Add › Furnishings › Bed puts a king bed against a wall, selected, as one undo step. Its Type makes it a
-// single, it is dragged by its body on the model, turned a quarter from More, sized by typing, given a fabric, and a
+// single, it is dragged by its body on the model, turned by its 3D handle and from More, sized by typing, given a fabric, and a
 // bedside table and a rug go beside and under it. On the 2D plan its footprint is dragged and its turn handle shows.
 // Needs the dev server at 127.0.0.1:5173 (or MOBILE_TEST_URL). Screenshots go to docs/verification/studio-furnishings/
 // (or FURNISHING_SHOTS).
@@ -16,7 +16,7 @@ fs.mkdirSync(shots,{recursive:true});
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try { for(const view of VIEWS) {
   const phone=view.width<=900;
-  const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:2});
+  const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:1});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{ if(m.type()==='error') console.log('console:',m.text()); });
   await page.goto(base+'/editor.html');
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
@@ -75,7 +75,7 @@ fs.mkdirSync(shots,{recursive:true});
    await tap(page.locator(`[data-add-furnishing="${key}"]:visible`));
    await page.waitForTimeout(1000);
   };
-  await el('add-furniture-btn').waitFor();
+  await el('add-furniture-btn').waitFor({timeout:90000});
   await page.waitForTimeout(600);
 
   // A room, then Add › Furnishings: five pieces to choose from.
@@ -120,6 +120,20 @@ fs.mkdirSync(shots,{recursive:true});
   assert.equal(await context(),'room-furnishing','still selected');
   await shot('dragged');
 
+  // The 3D turn handle rotates the bed with one undo step.
+  const turn = page.locator('.piece-turn:visible');
+  await turn.waitFor();
+  const ring = await turn.boundingBox();
+  const handle = {x:ring.x+ring.width/2,y:ring.y+ring.height/2};
+  const turnStep = await steps();
+  await drag(handle,{x:handle.x+Math.min(80,view.width*.18),y:handle.y-24});
+  const [swept] = await saved();
+  assert.notEqual(swept.angle,dragged.angle,'dragging the 3D handle turns the bed');
+  assert.equal(await steps(),turnStep+1,'turning with the 3D handle is one undo step');
+  await shot('turned-3d');
+  await tap(el('undo2'));
+  assert.equal((await saved())[0].angle,dragged.angle,'undo restores the angle before the drag');
+
   // More › Turn 90°.
   await tap(toolbar.locator('[data-action="more"]'));
   await tap(page.locator('.contextual-popover [data-action="turn"]'));
@@ -160,7 +174,7 @@ fs.mkdirSync(shots,{recursive:true});
   assert.equal(await page.locator('[data-rotate-id]').count(),1,'the selected bed has a turn handle');
   await shot('plan');
   // Software WebGL in a headless browser takes seconds to redraw the room after the plan changed it: wait for it.
-  await page.getByRole('button',{name:'3D'}).first().click({timeout:60000});await page.waitForTimeout(500);
+  await page.getByRole('button',{name:'3D'}).first().click({timeout:120000});await page.waitForTimeout(500);
 
   // Delete removes it, undo brings it back.
   if(!phone) {

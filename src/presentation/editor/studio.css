@@ -140,6 +140,9 @@ svg.studio-plan-art{color:#6f6250;padding:14px 22px;box-sizing:border-box;filter
 @media(max-width:374px){
  #app:has(#designs-back:not([hidden])) #topright #fitchip>span:not(.badge){display:none}
 }
+/* A room piece's turn handle is a wardrobe's turn handle; Studio hides the wardrobe's, not this one. */
+#app[data-view-mode="studio"] #labels .ground-rotate.piece-turn{display:flex!important}
+#labels[data-room-drag] .ground-rotate.piece-turn:not(.dragging){display:none!important}
 /* Add to room and Add to wall: their tabs wrap onto a second row on a desktop too, as Add furniture's rooms do, so none is
    cut off at the panel's edge (a hidden scrollbar gave no way to reach the last). */
 #app #pop2:is([data-add-context="studio"],[data-add-context="wall"]) .mobile-add-categories{flex-wrap:wrap!important;overflow:visible!important;row-gap:8px}

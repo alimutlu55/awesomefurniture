@@ -7,7 +7,9 @@ import { moveFurnishing } from '../../domain/studio/furnishings/furnishing-edit'
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
-import type { RoomMeasure } from './studio-editor.ports';
+import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
+import { TURN_KEY_STEP, bearing, sweptAngle, type TurnStart } from './turn-gesture';
+import { turnButtonAt } from '../viewport/turn-ring';
 import { measureNumber, unitSuffix } from './editor-format.js';
 
 type Point = { x: number; y: number; z: number };
@@ -16,6 +18,8 @@ type Commands = Readonly<Pick<ReturnType<typeof import('../../application/comman
 interface Drag {
   id: string; pointer: number; target: HTMLElement; snapshot: string; original: Studio; ground: Point; client: { x: number; y: number };
   moved: boolean; lock: PieceTarget | null; guides: Guide[]; reason: string | null;
+  /** Set while it is turned by its turn handle rather than moved. */
+  turn?: TurnStart;
 }
 
 export interface FurnishingEditorPorts {
@@ -70,9 +74,29 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
     return out.pose;
   }
 
+  /** Starts turning the selected furnishing by its turn handle, as a wardrobe is turned: the pointer sweeps round its middle. */
+  function beginTurn(e: PointerEvent, target: HTMLElement) {
+    const studio = room(), f = selected(studio), ground = picking.groundPoint(e);
+    if (!studio || !f || e.button > 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const centre = { x: f.x, z: f.z };
+    drag = { id: f.id, pointer: e.pointerId, target, snapshot: model.snapshot(), original: studio, ground: ground ?? { x: f.x, y: 0, z: f.z }, client: { x: e.clientX, y: e.clientY },
+      moved: false, lock: null, guides: [], reason: null, turn: { angle: f.angle, centre, polar: bearing(centre, ground), x: e.clientX, spatial: !!ground } };
+    target.classList.add('rotating');
+    try { target.setPointerCapture(e.pointerId); } catch { /* the handle keeps the gesture */ }
+  }
+
   function move(e: PointerEvent) {
     const g = drag;
     if (!g || e.pointerId !== g.pointer) return;
+    if (g.turn) {
+      const raw = sweptAngle(g.turn, picking.groundPoint(e), e.clientX);
+      g.moved = g.moved || Math.abs(raw - g.turn.angle) > 2;
+      if (g.moved) sceneCommands.turnStudioFurnishing(g.id, raw, e.shiftKey, false);
+      callbacks.redraw();
+      return;
+    }
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < 4) return;
     g.moved = true;
     const f = g.original.furnishings!.find(x => x.id === g.id)!, to = goal(g, f, e);
@@ -91,6 +115,7 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
     const g = drag;
     if (!g) return false;
     drag = null;
+    g.target.classList.remove('rotating');
     try { if (g.target.hasPointerCapture(g.pointer)) g.target.releasePointerCapture(g.pointer); } catch { /* released already */ }
     if (cancel) { model.restore(g.snapshot); callbacks.refresh(); return g.moved; }
     if (!g.moved) return false;
@@ -105,6 +130,23 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
     if (!f) return false;
     const at = piecePoint(f, across, out);
     if (!sceneCommands.editFurnishing(f.id, r => moveFurnishing(r, f.id, { ...at, angle: f.angle }))) return false;
+    callbacks.refresh();
+    return true;
+  }
+
+  /** The turn handle of the selected furnishing, on its ring at the front left, as a wardrobe's is. */
+  function handles(): RoomHandle[] {
+    const f = selected();
+    if (!f) return [];
+    const at = turnButtonAt(Math.hypot(f.width, f.depth) / 2 + 16), p = piecePoint(f, at.x, at.z);
+    return [{ key: 'turn:' + f.id, kind: 'turn', id: f.id, x: p.x, y: .8, z: p.z, label: 'Turn the ' + furnishingPiece(f).noun, angle: f.angle }];
+  }
+  /** Arrow keys on its turn handle turn it 15° (Shift: 1°), as on a wardrobe's. */
+  function turnBy(key: string, shift: boolean) {
+    const f = selected();
+    if (!f || (key !== 'ArrowLeft' && key !== 'ArrowRight')) return false;
+    const step = (shift ? 1 : TURN_KEY_STEP) * (key === 'ArrowLeft' ? -1 : 1);
+    if (!sceneCommands.turnStudioFurnishing(f.id, f.angle + step, true)) return false;
     callbacks.refresh();
     return true;
   }
@@ -141,9 +183,10 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
   };
 
   return {
-    grab, move, end, nudge, act, reason, measures,
+    grab, beginTurn, handles, turnBy, move, end, nudge, act, reason, measures,
     dragging: () => drag !== null,
-    dragKey: () => drag?.moved ? 'furnishing:' + drag.id : null,
+    // A turn keeps its turn handle on show; a move keeps the piece's.
+    dragKey: () => drag?.moved ? (drag.turn ? 'turn:' : 'furnishing:') + drag.id : null,
     guides: () => drag?.guides ?? [],
   };
 }

@@ -103,6 +103,11 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     /** The room editor with the fixture and furnishing editors: a selected toilet's or bed's measures, guides, drags and commands are its own. */
     const editor: typeof room = { ...room,
         measures: () => onFurnishing() || furnishings.dragging() ? furnishings.measures() : onFixture() || fixtures.dragging() ? fixtures.measures() : room.measures(),
+        // A turnable piece's turn handle is drawn and driven like every other room handle.
+        handles: () => onFurnishing() ? furnishings.handles() : room.handles(),
+        begin: (e, h, el) => { if (h.kind === 'turn') furnishings.beginTurn(e, el); else room.begin(e, h, el); },
+        nudge: (h, key, shift) => h.kind === 'turn' ? furnishings.turnBy(key, shift) : room.nudge(h, key, shift),
+        click: h => { if (h.kind !== 'turn') room.click(h); },
         guides: () => furnishings.dragging() ? furnishings.guides() : fixtures.dragging() ? fixtures.guides() : room.guides(),
         reason: () => furnishings.reason() ?? fixtures.reason() ?? room.reason(),
         dragging: () => furnishings.dragging() || fixtures.dragging() || room.dragging(),

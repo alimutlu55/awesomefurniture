@@ -1,5 +1,6 @@
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
+import { snapTurn } from '../../domain/pieces/piece-motion';
 
 /** What turns: a wardrobe, or anything shaped like one for the handle (a bed). */
 type Turning = Pick<EditorCabinet, 'id' | 'x' | 'z' | 'angle'> & { readonly state: { readonly d: number } };
@@ -52,13 +53,8 @@ export function createPlanRotation(ports: RotationPorts) {
     move(e: PointerEvent, svg: Element) {
       if (!drag || e.pointerId !== drag.pointer) return;
       const p = point(e, svg), a = Math.atan2(p.x - drag.from.x, p.z - drag.from.z) - drag.polar;
-      let angle = drag.from.angle + Math.atan2(Math.sin(a), Math.cos(a)) * 180 / Math.PI;
-      if (!e.shiftKey) {
-        angle = Math.round(angle / 5) * 5;
-        const right = Math.round(angle / 90) * 90;
-        if (Math.abs(angle - right) <= 5) angle = right;
-      }
-      ports.previewRotation(drag.id, (angle % 360 + 360) % 360, drag.from);
+      // The turn every piece shares: 5° steps with a quarter-turn catch; Shift turns exactly.
+      ports.previewRotation(drag.id, snapTurn(drag.from.angle + Math.atan2(Math.sin(a), Math.cos(a)) * 180 / Math.PI, e.shiftKey), drag.from);
       ports.refresh();
     },
     finish,

@@ -6,12 +6,14 @@ type Point = { x: number; y: number; z: number };
  * shaped in the Shape editor, not on the model. */
 export interface RoomHandle {
     readonly key: string;
-    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'depth' | 'tilt' | 'lift';
+    readonly kind: 'corner' | 'wall' | 'extend' | 'opening' | 'depth' | 'tilt' | 'lift' | 'turn';
     readonly id: string;
     x: number; y: number; z: number;
     readonly label: string;
     /** A wall grip's room side, an opening grip's direction along the wall. */
     readonly nx?: number; readonly nz?: number; readonly ux?: number; readonly uz?: number;
+    /** A turn handle's piece angle, shown on it while it turns. */
+    readonly angle?: number;
 }
 /** A live dimension: a ruler from a to b, in scene centimetres. */
 export interface RoomMeasure {

@@ -6,6 +6,8 @@ import { pointerTapSlop } from './interaction-state.js';
 import { cabinetSmartGuides } from './scene-smart-guides';
 import { autoGuideTranslation } from './smart-guides';
 import { snapArmed, snapToleranceCm } from '../../domain/geometry/alignment';
+import { snapTurn } from '../../domain/pieces/piece-motion';
+import { sweptAngle } from './turn-gesture';
 /** A piece that hangs on a wall (a kitchen wall unit) moves up and down and along its wall, not across the floor. A sink or hob
  * stands on a worktop instead: it slides across it at its own height. A shelf hangs like a wall unit. */
 const hangs = state => isKitchen(state) && kitchenUnit(state.unit).elevation > 0 && ['shelf', undefined].includes(kitchenUnit(state.unit).fixture);
@@ -37,21 +39,10 @@ export function createCabinetDrag({ dom, camera, inspector, model, picking, inte
             g.polar = p ? Math.atan2(p.x - w.x, p.z - w.z) : null;
             return;
         }
-        let delta = (e.clientX - g.x) * .6;
-        if (g.spatial && p && g.polar !== null) {
-            const a = Math.atan2(p.x - w.x, p.z - w.z) - g.polar;
-            delta = Math.atan2(Math.sin(a), Math.cos(a)) * 180 / Math.PI;
-        }
-        let angle = g.original + delta;
-        if (!e.shiftKey) {
-            angle = Math.round(angle / 5) * 5;
-            const right = Math.round(angle / 90) * 90;
-            if (Math.abs(angle - right) <= 5) {
-                angle = right;
-            }
-        }
-        sceneCommands.previewRotation(w.id, ((angle % 360) + 360) % 360, g.from);
-        g.moved = g.moved || Math.abs(delta) > 2;
+        // The turn every piece shares: the pointer's sweep round its middle, snapped in 5° steps with a quarter-turn catch.
+        const raw = sweptAngle({ angle: g.original, centre: { x: w.x, z: w.z }, polar: g.polar, x: g.x, spatial: g.spatial }, p, e.clientX);
+        sceneCommands.previewRotation(w.id, snapTurn(raw, e.shiftKey), g.from);
+        g.moved = g.moved || Math.abs(raw - g.original) > 2;
         renderState.Gr.rotation.y = w.angle * Math.PI / 180;
         renderState.Gr.updateMatrixWorld(true);
         g.handle.querySelector('span').textContent = Math.round(w.angle) + '°';

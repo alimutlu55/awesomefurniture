@@ -4,6 +4,7 @@ import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
 import { FURNISHINGS, furnishingFinish } from '../../domain/studio/furnishings/furnishing-kinds';
 import type { FurnishingKey } from '../../domain/studio/furnishings/furnishing-kinds';
 import { fabricTexture } from './fabric';
+import { turnRing } from './turn-ring';
 import { oakMaps, VENEER_TILE } from './wood-textures';
 import type { OakMaps } from './wood-textures';
 
@@ -137,7 +138,10 @@ export function createFurnishingViews(root: THREE.Object3D, select: THREE.LineBa
   }
 
   function clear() {
-    group.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
+    group.traverse(o => {
+      if (o instanceof THREE.Mesh || o instanceof THREE.Line) o.geometry.dispose();
+      if (o.userData.turnRing) ((o as THREE.Line).material as THREE.Material).dispose();
+    });
     group.clear();
     hits = []; outline = null;
   }
@@ -152,7 +156,11 @@ export function createFurnishingViews(root: THREE.Object3D, select: THREE.LineBa
 
   /** The selected furnishing's box outlined, as a selected fixture is. */
   function drawSelection() {
-    if (outline) { outline.parent?.remove(outline); outline.geometry.dispose(); outline = null; }
+    if (outline) {
+      outline.parent?.remove(outline); outline.geometry.dispose();
+      for (const c of outline.children) if (c instanceof THREE.Line) { c.geometry.dispose(); (c.material as THREE.Material).dispose(); }
+      outline = null;
+    }
     const f = selected ? room?.furnishings?.find(x => x.id === selected) : undefined;
     const holder = f && group.children.find(c => c.userData.furnishing === f.id);
     if (!f || !holder) return;
@@ -162,6 +170,10 @@ export function createFurnishingViews(root: THREE.Object3D, select: THREE.LineBa
     box.dispose();
     outline.renderOrder = 12;
     holder.add(outline);
+    // The turn ring every turnable piece shows while it is selected (turn-ring.ts), as a wardrobe's.
+    const { ring } = turnRing(f.width, f.depth);
+    ring.userData.turnRing = true;
+    outline.add(ring);
   }
 
   return {

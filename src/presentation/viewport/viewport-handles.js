@@ -1,28 +1,26 @@
 import * as THREE from "three";
 import { createActionBar } from '../editor/action-bar.js';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry.js';
+import { turnButtonAt, turnRing } from './turn-ring';
+import { TURN_KEY_STEP, TURN_MARKUP, TURN_TITLE } from '../editor/turn-gesture';
 /** The least distance, in pixels, between the centres of a fitting's opposite resize handles (44 px targets). */
 const HANDLE_GAP = 52;
 /** @param {Pick<import('./cabinet-renderer.ports').CreateCabinetRendererPorts, 'dom' | 'model' | 'renderState' | 'interactionState' | 'interactions' | 'shell' | 'inspector' | 'resources' | 'selectionState'> & { getRenderDesign(): import('../../domain/wardrobe/editor-design').EditorDesign & { sel: number; item: number; divider: number; open: boolean; space?: any } } & { callbacks: Pick<ReturnType<typeof import('./cabinet-renderer.js').createCabinetRenderer>, 'dimensionStroke' | 'drawSnapGuides'> } & { geometry: ReturnType<typeof createWardrobeGeometry> }} ports */
 export function createViewportHandles({ dom, geometry, callbacks, model, renderState, interactionState, interactions, shell, inspector, resources, selectionState, getRenderDesign }) {
     const { $, document } = dom;
+    /** The turn handle every turnable piece has (turn-ring.ts, turn-gesture.ts), here on the selected cabinet. */
     function addRotationIndicator() {
-        const radius = Math.hypot(getRenderDesign().w, getRenderDesign().d) / 2 + 16, points = [];
-        for (let i = 0; i <= 96; i++) {
-            const a = i / 96 * Math.PI * 2;
-            points.push(new THREE.Vector3(Math.sin(a) * radius, .5 - (model.activeCabinet().y || 0), Math.cos(a) * radius));
-        }
-        const ring = new THREE.Line(new THREE.BufferGeometry().setFromPoints(points), new THREE.LineBasicMaterial({ color: 0x8d7d65, transparent: true, opacity: .55 }));
+        const { ring, radius } = turnRing(getRenderDesign().w, getRenderDesign().d, .5 - (model.activeCabinet().y || 0)), at = turnButtonAt(radius);
         renderState.Gr.add(ring);
         const handle = document.createElement('button');
         handle.className = 'lbl ground-rotate';
         handle.type = 'button';
         handle.setAttribute('aria-label', 'Rotate ' + model.activeCabinet().name);
         handle.setAttribute('aria-pressed', 'false');
-        handle.title = 'Drag to rotate · Click, move, then click to set · Arrow keys rotate';
-        handle.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 8a8 8 0 1 0 1 8M19 3v5h-5"/></svg><span></span>';
+        handle.title = TURN_TITLE;
+        handle.innerHTML = TURN_MARKUP;
         $('#labels').appendChild(handle);
-        renderState.labs.push({ p: new THREE.Vector3(-radius * .55, .8 - (model.activeCabinet().y || 0), radius * .835), el: handle, owner: renderState.Gr });
+        renderState.labs.push({ p: new THREE.Vector3(at.x, .8 - (model.activeCabinet().y || 0), at.z), el: handle, owner: renderState.Gr });
         handle.onpointerdown = e => {
             if (e.button !== 0) {
                 return;
@@ -69,7 +67,7 @@ export function createViewportHandles({ dom, geometry, callbacks, model, renderS
         handle.onkeydown = e => {
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 e.preventDefault();
-                inspector.setCabinetPose('angle', model.activeCabinet().angle + (e.key === 'ArrowLeft' ? -15 : 15));
+                inspector.setCabinetPose('angle', model.activeCabinet().angle + (e.key === 'ArrowLeft' ? -TURN_KEY_STEP : TURN_KEY_STEP));
             }
         };
     }

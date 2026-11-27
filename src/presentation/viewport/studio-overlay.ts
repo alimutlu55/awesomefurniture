@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { sceneMeasurementBadge } from '../editor/scene-measurement-badge';
 import type { RoomHandle, RoomMeasure } from '../editor/studio-editor.ports';
 import type { Guide } from '../editor/studio-drag';
+import { TURN_MARKUP, TURN_TITLE } from '../editor/turn-gesture';
 
 type Lab = { p: THREE.Vector3; el: HTMLElement; owner?: THREE.Object3D; rulerNode?: Element; ruler?: unknown };
 interface StudioOverlayPorts {
@@ -45,8 +46,11 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             el = document.createElement('button');
             el.type = 'button';
             const split = h.kind === 'extend';
-            el.className = 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : split ? 'split-handle' : 'room-grip');
-            if (split) el.textContent = '+';
+            el.className = h.kind === 'turn' ? 'lbl ground-rotate room-handle piece-turn'
+                : 'lbl shape-handle room-handle ' + (h.kind === 'corner' ? 'point' : split ? 'split-handle' : 'room-grip');
+            // A turnable piece's turn handle is the wardrobe's (turn-gesture.ts): the same button, the same title.
+            if (h.kind === 'turn') { el.innerHTML = TURN_MARKUP; el.title = TURN_TITLE; }
+            else if (split) el.textContent = '+';
             else if (h.kind === 'depth' || h.kind === 'tilt') el.innerHTML = ARROWS;
             else if (h.kind !== 'corner') el.innerHTML = SLIDE;
             const button = el;
@@ -76,7 +80,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
             pool.set(h.key, el);
         }
         el.setAttribute('aria-label', h.label);
-        el.title = h.label;
+        if (h.kind !== 'turn') el.title = h.label;
         return el;
     }
 
@@ -134,6 +138,8 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         for (const h of handles) {
             const el = handleElement(h);
             el.classList.toggle('dragging', h.key === dragged);
+            const angle = h.kind === 'turn' ? el.querySelector('span') : null;
+            if (angle) angle.textContent = h.key === dragged && h.angle !== undefined ? Math.round(h.angle) + '°' : '';
             used.add(h.key);
             current.set(el, h);
             if (!el.isConnected) labels().appendChild(el);
