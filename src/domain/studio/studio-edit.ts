@@ -9,7 +9,7 @@ import { openingRange } from './studio-validation';
 import { keepWallBoundaries, trimWallBoundary } from './surface-outline';
 import { keepCeilings, reachAt, splitCeilings } from './studio-ceiling';
 import { isWallUtility, openingLimits } from './wall-utilities';
-import { fixturesOnWalls, keepFixtures, splitFixtures } from './fixtures/fixture-edit';
+import { followFixtures, keepFixtures } from './fixtures/fixture-edit';
 
 const custom = (studio: Studio, changes: Partial<Studio>): Studio => {
   let next: Studio = { ...studio, ...changes, template: 'custom' };
@@ -107,8 +107,9 @@ export function splitWall(studio: Studio, id: string, at?: number): Studio | nul
   const second: StudioWall = { ...trimWallBoundary(w, d, Infinity, d), id: nextId('w', studio.walls), a: mid.id, b: w.b };
   const walls = studio.walls.flatMap(x => x.id === id ? [{ ...trimWallBoundary(x, -Infinity, d, 0), b: mid.id }, second] : [x]);
   const openings = studio.openings.map(o => o.wall !== id || o.offset < d ? o : { ...o, wall: second.id, offset: o.offset - d });
-  return custom(studio, { corners: [...studio.corners, mid], walls, openings, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}),
-    ...(studio.fixtures ? { fixtures: splitFixtures(studio, id, second.id, d) } : {}) });
+  const next = { ...studio, corners: [...studio.corners, mid], walls, openings };
+  return custom(studio, { ...next, ...(studio.ceilings ? { ceilings: splitCeilings(studio, id, second.id, d) } : {}),
+    ...(studio.fixtures ? { fixtures: followFixtures(studio, next, { wall: id, second: second.id, at: d }) } : {}) });
 }
 
 /** Adds a wall from a corner to a new point, continuing the chain the corner belongs to so the room
@@ -142,7 +143,7 @@ export function mergeCorners(studio: Studio, from: string, into: string): Studio
   if (from === into || !corner(studio, from) || !corner(studio, into)) return null;
   const walls = studio.walls.map(w => ({ ...w, a: w.a === from ? into : w.a, b: w.b === from ? into : w.b })).filter(w => w.a !== w.b);
   const kept = new Set(walls.map(w => w.id));
-  const ceilings = studio.ceilings?.filter(c => kept.has(c.wall)), fixtures = fixturesOnWalls(studio, kept);
+  const ceilings = studio.ceilings?.filter(c => kept.has(c.wall)), fixtures = followFixtures(studio, { ...studio, walls });
   return custom(studio, { corners: studio.corners.filter(c => c.id !== from), walls, openings: studio.openings.filter(o => kept.has(o.wall)),
     ...(ceilings ? { ceilings } : {}), ...(fixtures ? { fixtures } : {}) });
 }
@@ -187,7 +188,7 @@ export function removeWall(studio: Studio, id: string): Studio | null {
   if (!wall(studio, id)) return null;
   const walls = studio.walls.filter(w => w.id !== id);
   const next = { ...studio, walls };
-  const ceilings = studio.ceilings?.filter(c => c.wall !== id), fixtures = fixturesOnWalls(studio, new Set(walls.map(w => w.id)));
+  const ceilings = studio.ceilings?.filter(c => c.wall !== id), fixtures = followFixtures(studio, next);
   return custom(studio, { walls, corners: studio.corners.filter(c => cornerDegree(next, c.id) > 0), openings: studio.openings.filter(o => o.wall !== id),
     ...(ceilings ? { ceilings } : {}), ...(fixtures ? { fixtures } : {}) });
 }

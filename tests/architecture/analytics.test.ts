@@ -212,17 +212,13 @@ test('server events are a log line and a stored row, and writing them never fail
   finally { console.error = quiet; }
 });
 
-test('what people add is counted only when the command changed the design', () => {
+test('room and shape commands count only successful edits', () => {
   const events: { event: AnalyticsEventName; properties: unknown }[] = [];
-  const pieces = [{ state: { product: 'kitchen' } }] as never[];
-  const commands = { addCabinet: (copy?: boolean) => copy ? null : { state: { product: undefined } }, addKitchenUnit: () => pieces[0]!,
-    applyShapeTemplate: () => true, addStudioOpening: () => 'opening-1', other: () => 42 };
-  const counted = withDesignAnalytics(commands, (event, properties) => events.push({ event, properties }), () => pieces);
-  counted.addCabinet(false); counted.addCabinet(true); counted.addKitchenUnit(); counted.applyShapeTemplate(); counted.addStudioOpening();
+  const commands = { applyShapeTemplate: (ok = true) => ok, addStudioOpening: () => 'opening-1', other: () => 42 };
+  const counted = withDesignAnalytics(commands, (event, properties) => events.push({ event, properties }));
+  counted.applyShapeTemplate(false); counted.applyShapeTemplate(); counted.addStudioOpening();
   assert.equal(counted.other(), 42);
-  assert.deepEqual(events.map(e => e.event), ['furniture_piece_added', 'furniture_piece_added', 'wardrobe_shape_changed', 'studio_room_edited']);
-  assert.deepEqual(events[0]!.properties, { product: 'wardrobe', preset_id: 'regular', placement: 'wall', total_pieces_in_scene: 1 });
-  assert.equal((events[1]!.properties as { product: string }).product, 'kitchen');
+  assert.deepEqual(events.map(e => e.event), ['wardrobe_shape_changed', 'studio_room_edited']);
   assert.deepEqual(sceneSummary({ wardrobes: [{ state: { product: 'kitchen' } }, { state: {} }] as never }),
     { wardrobes: 1, kitchens: 1, pieces: 2, mix: 'both', product: 'wardrobe' });
 });

@@ -22,8 +22,8 @@ interface RoomWiringPorts {
     readonly model: StudioEditorPorts['model'];
     readonly sceneCommands: StudioEditorPorts['sceneCommands'] & import('./fixture-editor').FixtureEditorPorts['sceneCommands']
         & Parameters<typeof createFixturePanel>[0]['sceneCommands'] & import('./furnishing-editor').FurnishingEditorPorts['sceneCommands']
-        & Parameters<typeof createFurnishingPanel>[0]['sceneCommands'] & { addStudioFurnishing(kind: string, wallId?: string, near?: number): string | null }
-        & Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'resizeWallLength'>;
+        & Parameters<typeof createFurnishingPanel>[0]['sceneCommands']
+        & Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'resizeWallLength' | 'addPiece' | 'previewPiece' | 'commitPiece'>;
     readonly history: { checkpoint(snapshot: string): void };
     readonly picking: {
         groundPoint(e: PointerEvent, height?: number): THREE.Vector3 | null; screenPoint(p: THREE.Vector3): { x: number; y: number };
@@ -138,6 +138,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     fields = createStudioFields({
         document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         editStudio: edit => sceneCommands.editStudio(edit), refresh, listen,
+        editPiece: (key, edit, preview) => preview ? sceneCommands.previewPiece(key, edit) : sceneCommands.commitPiece(key, edit),
         valid: r => !sceneCommands.studioProblem(r),
         resizeWallLength: (id, length, preview) => sceneCommands.resizeWallLength(id, length, !preview, preview),
         resize: { model, history, preview: edit => sceneCommands.editStudio(edit, false, true), commit: () => sceneCommands.followCeilings(true),
@@ -270,7 +271,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         const own = s?.kind === 'wall' ? s.id : s?.kind === 'ceiling' ? room.ceilings?.find(c => c.id === s.id)?.wall
             : s?.kind === 'opening' ? room.openings.find(o => o.id === s.id)?.wall : s?.kind === 'fixture' ? room.fixtures?.find(f => f.id === s.id)?.wall : undefined;
         const wallId = own ?? view.placementWall, near = wallId && wallId === view.placementWall && !own ? view.placementAlong : undefined;
-        const id = sceneCommands.addStudioFixture(kind, wallId, near);
+        const id = sceneCommands.addPiece({ family: 'fixture', id: kind }, { wallId, near })?.id;
         if (!id) { refresh(); return; }
         editor.select({ kind: 'fixture', id });
         refresh();
@@ -284,7 +285,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         const room = model.scene.studio, s = editor.selection(), view = late.viewed();
         if (!room?.walls.length) { late.report('Add a room first, then furniture in it.'); return; }
         const own = s?.kind === 'wall' ? s.id : undefined, wallId = own ?? view.placementWall;
-        const id = sceneCommands.addStudioFurnishing(kind, wallId, !own && wallId === view.placementWall ? view.placementAlong : undefined);
+        const id = sceneCommands.addPiece({ family: 'furnishing', id: kind }, { wallId, near: !own && wallId === view.placementWall ? view.placementAlong : undefined })?.id;
         if (!id) { refresh(); return; }
         editor.select({ kind: 'furnishing', id });
         refresh();

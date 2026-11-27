@@ -7,10 +7,12 @@
  * a concrete kind only says what it is. Centimetres and degrees; at angle 0 a piece's back is at -z, its front faces +z.
  */
 import type { Studio } from '../studio/studio';
-import type { Pose } from '../studio/studio-placement';
+import type { Pose as FloorPose } from '../studio/studio-placement';
+import type { CabinetData } from './cabinet-piece';
 import type { AlignTarget } from '../geometry/alignment';
 
-export type { Pose };
+/** A floor pose may omit elevation; a body always has it. */
+export interface Pose extends FloorPose { readonly y?: number | undefined }
 export interface Size { readonly width: number; readonly depth: number; readonly height: number }
 export type SizeLimits = { readonly [K in keyof Size]: readonly [number, number] };
 
@@ -30,7 +32,12 @@ export interface Body extends Pose, Size {
 }
 
 /** The room a piece stands in: its walls and shapes, and every other piece in it, of every family. */
-export interface Room { readonly studio: Studio | undefined; readonly bodies: readonly Body[] }
+export interface Room {
+  readonly studio: Studio | undefined;
+  readonly bodies: readonly Body[];
+  /** Cabinets retain their installation details for continuous collision and fitting checks. */
+  readonly cabinets?: readonly CabinetData[] | undefined;
+}
 
 /** A line drawn while something lines up: from `a` to `b`, with what it lined up with. */
 export interface PieceGuide { readonly a: { x: number; y: number; z: number }; readonly b: { x: number; y: number; z: number }; readonly label: string }
@@ -51,29 +58,53 @@ export interface PieceGap {
   readonly short: boolean;
 }
 
-/* ---- One interface per action ---- */
+export interface Outcome<T> { readonly value: T | null; readonly reason?: string }
+export interface Placement extends Pose {
+  readonly size: Size;
+  readonly wallId?: string | undefined;
+  readonly offset?: number | undefined;
+}
+export interface PlaceHint {
+  readonly wallId?: string | undefined;
+  readonly near?: number | undefined;
+  readonly accept?: ((placement: Placement) => boolean) | undefined;
+}
+export interface MoveOptions {
+  readonly free?: boolean | undefined;
+  readonly lock?: PieceTarget | null | undefined;
+  readonly tolerance?: number | undefined;
+  readonly from?: Pose | undefined;
+  readonly problem?: ((pose: Pose) => string | null) | undefined;
+  /** Numeric cabinet inputs follow the exact sweep; gestures can also slide along a blocked axis. */
+  readonly exact?: boolean | undefined;
+}
+export interface MoveOutcome extends Outcome<Pose> {
+  readonly lock: PieceTarget | null;
+  readonly guides: readonly PieceGuide[];
+}
+export type ResizeAnchor = 'back' | 'middle';
+export type SizedPose = Size & Pose & { readonly y: number };
+export interface PieceType { readonly id: string; readonly name: string; readonly size: Size; readonly limits: SizeLimits }
+export interface PieceFinish { readonly id: string; readonly name: string }
+export interface PieceFinishGroup { readonly id: string; readonly choices: readonly PieceFinish[] }
+export type WallChange = { readonly wall: string; readonly second: string; readonly at: number };
+export interface WallPlacement extends Pose { readonly wall: string; readonly offset: number }
 
-/** It has a body in the room, and a place a new one goes. */
-export interface Placeable { body(studio: Studio | undefined): Body }
-/** It may not run into walls, shapes, doorways or other pieces. */
+export interface Placeable { body(studio: Studio | undefined): Body; place(room: Room, hint?: PlaceHint): Placement | null }
 export interface Collidable { readonly blocks: boolean; clashes(room: Room): string[] }
-/** It is measured: the free floor around it, amber where a person has less than it needs. */
 export interface Measurable { readonly needs: Needs; gaps(room: Room): PieceGap[] }
-/** It has sizes with limits, from its kind. */
-export interface Resizable { limits(): SizeLimits }
-/** It can be copied beside itself. */
-export interface Duplicable { copyPoses(room: Room): Pose[] }
-/** How it moves: anywhere on the floor, along its wall, along and up and down its wall. */
-export type Mobility = 'floor' | 'along-wall' | 'on-wall';
-export interface Movable { readonly mobility: Mobility }
-/** It turns about its middle. */
+export interface Resizable {
+  limits(): SizeLimits;
+  resize(room: Room, size: Partial<Size>, keep?: ResizeAnchor): Outcome<SizedPose>;
+}
+export interface Duplicable { copyPoses(room: Room): Pose[]; copyPose(room: Room, hint?: PlaceHint): Pose | null }
+export type Mobility = 'floor' | 'along-wall' | 'on-wall' | 'on-worktop';
+export interface Movable { readonly mobility: Mobility; move(room: Room, to: Pose, options?: MoveOptions): MoveOutcome }
 export interface Turnable { turn(room: Room, angle: number, free: boolean): Pose; quarterTurn(room: Room): Pose }
-/** Where it lines up along a wall. */
 export interface Alignable { targets(room: Room, wallId: string): PieceTarget[] }
-/** It comes in types (a single or a king bed). */
-export interface Typed { readonly typed: boolean }
-/** It has finishes to choose. */
-export interface Finishable { readonly finishable: boolean }
+export interface Typed<D> { types(): readonly PieceType[]; withType(id: string): D | null }
+export interface Finishable<D> { finishGroups(): readonly PieceFinishGroup[]; withFinish(group: string, id: string): D | null }
+export interface FollowsRoom { followRoom(before: Studio, after: Studio, split?: WallChange): WallPlacement | null }
 
 /** What a piece can do, for building its tools (toolbar, handles, keys) without knowing its kind. */
 export interface Capabilities {

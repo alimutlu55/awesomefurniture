@@ -6,7 +6,7 @@ import type { RoomSelection } from '../viewport/studio-renderer';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
 import { furnishingPiece, roomOf } from '../../domain/pieces/pieces';
 import type { PieceTarget } from '../../domain/pieces/piece-model';
-import { furthestValid, type Guide } from './studio-drag';
+import type { Guide } from './studio-drag';
 import { esc } from './editor-format.js';
 
 /** A furnishing's plan symbol in its own frame (x across, y from its back at -d/2 to its front), as an architect draws it. */
@@ -78,14 +78,17 @@ export function createPlanFurnishings(ports: PlanFurnishingPorts) {
       if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.z) < 4) return;
       g.moved = true;
       const f = g.original.furnishings!.find(x => x.id === g.id)!, p = point(e, svg);
-      const out = furnishingPiece(f).aim(roomOf(g.original, ports.model.scene.wardrobes), { x: f.x + p.x - g.start.x, z: f.z + p.z - g.start.z, angle: f.angle },
-        g.lock, e.shiftKey, 5 / Math.max(.2, ports.transform().zoom) + 2);
-      g.lock = out.lock;
-      const now = ports.model.scene.studio?.furnishings?.find(x => x.id === g.id) ?? f, to = out.pose;
-      const want = (t: number) => moveFurnishing(g.original, g.id, { x: now.x + (to.x - now.x) * t, z: now.z + (to.z - now.z) * t, angle: to.angle });
-      const result = furthestValid(want, s => !ports.sceneCommands.furnishingProblem(s, g.id));
-      g.guides = result.whole ? [...out.guides] : [];
-      if (result.room) ports.model.scene.studio = result.room;
+      const now = ports.model.scene.studio?.furnishings?.find(x => x.id === g.id) ?? f;
+      const result = furnishingPiece(f).move(roomOf(g.original, ports.model.scene.wardrobes), {
+        x: f.x + p.x - g.start.x, z: f.z + p.z - g.start.z, angle: f.angle,
+      }, { lock: g.lock, free: e.shiftKey, from: now, tolerance: 5 / Math.max(.2, ports.transform().zoom) + 2, problem: pose => {
+        const next = moveFurnishing(g.original, g.id, pose);
+        return next ? ports.sceneCommands.furnishingProblem(next, g.id) : 'Choose a furnishing first.';
+      } });
+      g.lock = result.lock;
+      g.guides = [...result.guides];
+      const next = result.value && moveFurnishing(g.original, g.id, result.value);
+      if (next) ports.model.scene.studio = next;
       ports.refresh();
     },
     finish,

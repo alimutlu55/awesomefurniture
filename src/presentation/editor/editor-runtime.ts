@@ -139,7 +139,7 @@ export function startEditor(initialScene: EditorScene | undefined, dom: ReturnTy
                 inspector.histUI();
             } };
         const sceneCommands = withDesignAnalytics(createSceneCommands(() => model.scene, { checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint,
-            report: message => shell.toast(message), track }), track, () => model.scene.wardrobes);
+            report: message => shell.toast(message), track }), track);
         const commands = createDesignCommands(() => model.activeCabinet().state, {
             getBudget: () => settings.budget, report: (message, action) => shell.toast(message, action), changed: keep => inspector.update(keep),
             checkpoint: historyActions.checkpoint, discardCheckpoint: history.discardCheckpoint,

@@ -1,12 +1,11 @@
-import { cabinetBox } from '../../domain/pieces/pieces';
-import { MIN_CABINET_DEPTH } from '../../domain/wardrobe/cabinet-limits';
+import { pieceOf, roomOf } from '../../domain/pieces/pieces';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry';
 import { createWardrobeGeometry } from '../../domain/geometry/wardrobe-geometry';
 import { studioPlacementObstacles, studioObstacles } from '../../domain/studio/studio-obstacles';
-import { flushAgainst, placeAgainstWall, placeOnRoomFloor, wallSpot, type Pose } from '../../domain/studio/studio-placement';
-import { roomHeight, wallFace, wallLine } from '../../domain/studio/studio';
+import type { Pose } from '../../domain/pieces/piece-model';
+import { roomHeight } from '../../domain/studio/studio';
 import { ceilingClearance } from '../../domain/studio/studio-clearance';
 import { resizeShape, resolveShape, shapeProblems } from '../../domain/wardrobe/shape/wardrobe-shape';
 import { createCeilingCommands } from './ceiling-commands';
@@ -36,7 +35,7 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
   const ceilings = createCeilingCommands(() => scene, () => {});
   function prepare(pose: Pose, w: number, d: number): EditorCabinet | null {
     if (w < minW || w > maxW || d < minD || d > maxD) return null;
-    const footprint = { ...original, ...pose, state: { ...original.state, w, d } };
+    const footprint = { ...original, x: pose.x, z: pose.z, angle: pose.angle, state: { ...original.state, w, d } };
     if (wallsOnly.cabinetCollides(footprint)) return null;
     // Even the shortest buildable cabinet cannot occupy an already filled
     // floor footprint. Prune it before sampling the room ceiling.
@@ -57,54 +56,14 @@ export function placeCreatedCabinet(scene: EditorScene, original: EditorCabinet,
     if (shapeProblems(shape, w).length || ceilingClearance(studio, { ...candidate, w, d })(shape)) return null;
     return collision.cabinetCollides(candidate) ? null : candidate;
   }
-  const standing = scene.wardrobes.map(cabinetBox);
-  let found: EditorCabinet | null = null;
-  function search(w: number, d: number, wallId?: string) {
-    if (wallId && size.from !== undefined) {
-      const pose = flushAgainst(studio!, wallId, size.from, { w, d });
-      return pose ? prepare(pose, w, d) : null;
-    }
-    placeAgainstWall(studio!, { w, d }, pose => {
-      found = prepare(pose, w, d);
-      return found === null;
-    }, wallId, wallId !== undefined && wallId === size.placementWall ? size.placementAlong : undefined);
-    return found;
-  }
-  // Preserve the normal default size whenever it can actually fit.
-  if (!wall || copy) {
-    const same = search(original.state.w, original.state.d, targetWall);
-    if (same || copy) return same;
-  }
-  const walls = studio.walls.filter(w => targetWall === undefined || w.id === targetWall)
-    .sort((a, b) => (wallFace(studio, b)?.length ?? 0) - (wallFace(studio, a)?.length ?? 0));
-  const depths = size.d !== undefined ? [size.d] : [...new Set([original.state.d, 55, 50, 45, 40, 35, 30, 25, 20, MIN_CABINET_DEPTH].filter(d => d <= original.state.d && d >= minD))];
-  for (const d of depths) for (const roomWall of walls) {
-    const face = wallFace(studio, roomWall);
-    if (!face) continue;
-    const spot = wallSpot(studio, roomWall.id, standing, { min: size.w ?? minW, max: size.w ?? (wall ? maxW : original.state.w), depth: d });
-    const max = size.w ?? Math.floor(Math.min(face.length, spot?.w ?? (wall ? maxW : original.state.w)));
-    const min = size.w ?? minW;
-    for (let width = max; width >= min; width -= 10) {
-      const result = search(width, d, roomWall.id);
-      if (result) return result;
-      if (size.from !== undefined) break;
-    }
-    if (min !== max && (max - min) % 10 !== 0) {
-      const result = search(min, d, roomWall.id);
-      if (result) return result;
-    }
-  }
-  if (roomFallback) {
-    const { w, d } = original.state;
-    const elsewhere = targetWall ? search(w, d) : null;
-    if (elsewhere) return elsewhere;
-    const viewed = studio.walls.find(roomWall => roomWall.id === targetWall);
-    const angle = viewed ? wallLine(studio, viewed)?.angle ?? 0 : 0;
-    placeOnRoomFloor(studio, { w, d }, pose => {
-      found = prepare(pose, w, d);
-      return found === null;
-    }, angle);
-    return found;
-  }
-  return null;
+  let accepted: EditorCabinet | null = null;
+  const placement = pieceOf(original).place(roomOf(studio, scene.wardrobes), {
+    wallId: targetWall, near: size.placementAlong, from: size.from, copy, fillWall: wall !== undefined, fallback: !!roomFallback,
+    specifiedSize: { width: size.w, depth: size.d, height: size.h },
+    accept: ({ x, z, angle, size: dimensions }) => {
+      accepted = prepare({ x, z, angle }, dimensions.width, dimensions.depth);
+      return accepted !== null;
+    },
+  });
+  return placement ? accepted : null;
 }

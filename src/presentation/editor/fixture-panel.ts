@@ -1,8 +1,9 @@
 import type { Studio, StudioFixture } from '../../domain/studio/studio';
-import { FINISHES, FINISH_NAMES, TAPS, fixtureKind, fixtureType } from '../../domain/studio/fixtures/fixture-kinds';
+import { FINISH_NAMES, TAPS, fixtureKind } from '../../domain/studio/fixtures/fixture-kinds';
 import type { FinishGroup } from '../../domain/studio/fixtures/fixture-kinds';
 import { currentSetup } from '../../domain/studio/fixtures/fixture-setup';
-import { setFixtureLook, setFixtureType } from '../../domain/studio/fixtures/fixture-edit';
+import { fixturePiece } from '../../domain/pieces/pieces';
+import { setFixtureLook } from '../../domain/studio/fixtures/fixture-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { basinArt, setupArt } from './fixture-art';
 import { esc } from './editor-format.js';
@@ -11,7 +12,7 @@ interface FixturePanelPorts {
   document: Pick<Document, 'createElement'>;
   getStudio(): Studio | undefined;
   getSelection(): RoomSelection;
-  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'editFixture' | 'setFixtureSetup'>>;
+  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'editFixture' | 'setFixtureSetup' | 'commitPiece'>>;
   refresh(): void;
   listen(target: EventTarget, event: string, handler: (e: Event) => void): void;
 }
@@ -41,16 +42,15 @@ export function createFixturePanel({ document, getStudio, getSelection, sceneCom
     }
     const tap = f.tap ?? 'deck';
     return '<div class="fixture-choices" role="group" aria-label="Type">'
-      + k.types.map(t => card(`data-fixture-type="${t.id}"`, t.id === f.type, basinArt(t.id, tap, t.name), t.name, t.note)).join('') + '</div>'
+      + fixturePiece(f).types().map(t => card(`data-fixture-type="${t.id}"`, t.id === f.type, basinArt(t.id, tap, t.name), t.name, t.note)).join('') + '</div>'
       + (k.tap ? '<b class="fixture-label">Tap</b><div class="fixture-choices two" role="group" aria-label="Tap">'
         + TAPS.map(t => card(`data-fixture-tap="${t.id}"`, t.id === tap, basinArt(f.type, t.id, t.name), t.name, t.note)).join('') + '</div>' : '');
   }
   function finishMarkup(f: StudioFixture) {
-    const k = fixtureKind(f.kind)!, cabinet = !!fixtureType(f.kind, f.type)?.cabinet;
-    return k.finishes.filter(g => g !== 'front' || cabinet).map(group => {
-      const chosen = f[group] ?? FINISHES[group][0]!.id;
+    return fixturePiece(f).finishGroups().map(({ id: group, choices }) => {
+      const chosen = f[group] ?? choices[0]!.id;
       return `<b class="fixture-label">${FINISH_NAMES[group]}</b><div class="wall-paint-swatches fixture-swatches" role="group" aria-label="${FINISH_NAMES[group]}">`
-        + FINISHES[group].map(x => `<button type="button" data-fixture-finish="${group}:${x.id}" aria-pressed="${x.id === chosen}" title="${esc(x.name)}">`
+        + choices.map(x => `<button type="button" data-fixture-finish="${group}:${x.id}" aria-pressed="${x.id === chosen}" title="${esc(x.name)}">`
           + `<i class="finish-${group}" style="background:${x.color}"></i><span>${esc(x.name)}</span></button>`).join('') + '</div>';
     }).join('');
   }
@@ -66,11 +66,11 @@ export function createFixturePanel({ document, getStudio, getSelection, sceneCom
     if (!b || !f) return;
     const { fixtureSetup: setup, fixtureType: type, fixtureTap: tap, fixtureFinish: look } = b.dataset;
     if (setup) sceneCommands.setFixtureSetup(f.id, setup);
-    else if (type) sceneCommands.editFixture(f.id, r => setFixtureType(r, f.id, type));
+    else if (type) sceneCommands.commitPiece({ family: 'fixture', id: f.id }, { action: 'type', id: type });
     else if (tap) sceneCommands.editFixture(f.id, r => setFixtureLook(r, f.id, { tap: tap === 'wall' ? 'wall' : undefined }));
     else if (look) {
       const [group, id] = look.split(':') as [FinishGroup, string];
-      sceneCommands.editFixture(f.id, r => setFixtureLook(r, f.id, { [group]: id === FINISHES[group][0]!.id ? undefined : id }));
+      sceneCommands.commitPiece({ family: 'fixture', id: f.id }, { action: 'finish', group, id });
     }
     refresh();
     render();

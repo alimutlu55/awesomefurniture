@@ -7,7 +7,8 @@ import { createCabinetGeometry } from '../../domain/geometry/cabinet-geometry.js
 import { studioObstacles } from '../../domain/studio/studio-obstacles';
 import { createKitchenCover, createKitchenDesign, kitchenPreset } from '../../domain/kitchen/kitchen-design';
 import { isFixture, kitchenUnit, type KitchenUnitKey } from '../../domain/kitchen/kitchen-units';
-import { MAX_ARRAY_COPIES, arrayPoses, besidePanel, besidePose, isKitchenUnit, runOf as runOfUnit, stackedPose, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { MAX_ARRAY_COPIES, arrayPoses, besidePanel, besidePose, isKitchenUnit, runOf as runOfUnit, unitAxes, type Pose } from '../../domain/kitchen/kitchen-runs';
+import { pieceOf, roomOf } from '../../domain/pieces/pieces';
 import { furnitureModule } from '../../domain/furniture/furniture';
 import { fitting } from '../../domain/wardrobe/fittings';
 import { PANEL } from '../../domain/wardrobe/catalog.js';
@@ -51,29 +52,12 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     return [...getScene().wardrobes].reverse().find(isKitchenUnit) ?? null;
   }
 
-  const unitsAt = (y: number) => getScene().wardrobes.filter(c => isKitchenUnit(c) && (y < .5 ? Math.abs(c.y || 0) < .5 : (c.y || 0) >= .5));
   /** The run a unit stands in, left to right. */
   const runOf = (unit: EditorCabinet) => runOfUnit(getScene().wardrobes, unit) as EditorCabinet[];
 
-  /** Spots at the two ends of the run a unit stands in: after its right end first. */
-  function besideRun(unit: EditorCabinet, cabinet: EditorCabinet, y: number): Pose[] {
-    const run = runOf(unit);
-    return [besidePanel(run[run.length - 1]!, cabinet, 1, y), besidePanel(run[0]!, cabinet, -1, y)];
-  }
-
-  /** Where a new unit can stand next to `anchor`: a wall unit over it (or over its run) first, then along the
-   * units already at its own height; a floor unit at the end of the anchor's run. */
   function placeNear(anchor: EditorCabinet, cabinet: EditorCabinet): EditorCabinet | null {
-    const y = kitchenUnit(cabinet.state.unit).elevation, spots: Pose[] = [];
-    if (Math.abs((anchor.y || 0) - y) > .5) {
-      for (const c of [anchor, ...runOf(anchor)]) spots.push(stackedPose(c, cabinet.state.d, y));
-      for (const c of unitsAt(y).reverse()) spots.push(...besideRun(c as EditorCabinet, cabinet, y));
-    } else spots.push(...besideRun(anchor, cabinet, y));
-    for (const spot of spots) {
-      const candidate = at(cabinet, spot);
-      if (fits(candidate)) return candidate;
-    }
-    return null;
+    const scene = getScene();
+    return pieceOf(cabinet).placeNear(roomOf(scene.studio, scene.wardrobes), cabinet, anchor, fits);
   }
 
   function add(cabinet: EditorCabinet): EditorCabinet {
@@ -133,8 +117,8 @@ export function createKitchenCommands(getScene: () => EditorScene, { checkpoint 
     },
 
     /** A copy of the selected unit beside it, with its appliances turned into plain storage. */
-    duplicateKitchenUnit(): EditorCabinet | null {
-      const original = active();
+    duplicateKitchenUnit(idToCopy = getScene().activeWardrobe): EditorCabinet | null {
+      const original = getScene().wardrobes.find(unit => unit.id === idToCopy);
       if (!original || !isKitchenUnit(original)) return null;
       const id = getScene().nextWardrobeId, state = copyOf(original);
       const copy: EditorCabinet = { ...structuredClone(original), id, name: named(state.unit, id), state };

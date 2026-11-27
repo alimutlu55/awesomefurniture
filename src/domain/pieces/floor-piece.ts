@@ -13,11 +13,11 @@ import { wallObstacles } from '../studio/studio-obstacles';
 import { snapTurn } from './piece-motion';
 import { Piece } from './piece';
 import { sameKey } from './piece-model';
-import type { Aim, Alignable, Capabilities, Mobility, PieceGuide, PieceTarget, Pose, Room, Turnable } from './piece-model';
+import type { Aim, Alignable, Capabilities, Mobility, Movable, MoveOptions, PieceGuide, PieceTarget, Pose, Room, Turnable } from './piece-model';
 
 const turned = (a: number, b: number) => Math.abs(((a - b) % 360 + 540) % 360 - 180);
 
-export abstract class FloorPiece<D> extends Piece<D> implements Turnable, Alignable {
+export abstract class FloorPiece<D> extends Piece<D> implements Turnable, Alignable, Movable {
   readonly mobility: Mobility = 'floor';
   /** Squares up against a wall it comes near while dragged. A rug does not. */
   protected get snapsToWalls() { return true; }
@@ -60,7 +60,11 @@ export abstract class FloorPiece<D> extends Piece<D> implements Turnable, Aligna
     if (!hit) return { pose: flush, lock: null, guides: [] };
     const at = (s: number, out: number) => ({ x: line.a.x + line.ux * s + line.nx * (w.thickness / 2 + out), y: 1, z: line.a.z + line.uz * s + line.nz * (w.thickness / 2 + out) });
     const guides: PieceGuide[] = hit.src === undefined ? [] : [{ a: at(hit.src, 0), b: at(hit.src, b.depth + 25), label: hit.label }];
-    return { pose: { x: flush.x + line.ux * (hit.v - t), z: flush.z + line.uz * (hit.v - t), angle: flush.angle }, lock: hit, guides };
+    return { pose: { x: flush.x + line.ux * (hit.v - t), z: flush.z + line.uz * (hit.v - t), angle: flush.angle, y: raw.y }, lock: hit, guides };
+  }
+
+  move(room: Room, to: Pose, options: MoveOptions = {}) {
+    return this.resolveMove(room, this.aim(room, to, options.lock ?? null, options.free ?? false, options.tolerance), options);
   }
 
   /** Turned about its middle to `angle` (snapped unless `free`), slid out of any wall it would turn into. */

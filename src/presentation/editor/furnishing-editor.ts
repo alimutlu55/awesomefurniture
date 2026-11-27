@@ -1,11 +1,9 @@
 import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
-import type { Pose } from '../../domain/studio/studio-placement';
 import { furnishingPiece, roomOf } from '../../domain/pieces/pieces';
 import type { PieceTarget } from '../../domain/pieces/piece-model';
 import { pieceAxes, piecePoint } from '../../domain/pieces/piece-motion';
 import { moveFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
 import type { RoomSelection } from '../viewport/studio-renderer';
-import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
 import type { RoomHandle, RoomMeasure } from './studio-editor.ports';
 import { TURN_KEY_STEP, bearing, sweptAngle, type TurnStart } from './turn-gesture';
@@ -64,16 +62,6 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
     return true;
   }
 
-  /** Where the pointer puts it: moved with the pointer, then flush against a wall it comes near and lined up along it. */
-  function goal(g: Drag, f: StudioFurnishing, e: PointerEvent): Pose | null {
-    const p = picking.groundPoint(e);
-    if (!p) return null;
-    const out = furnishingPiece(f).aim(roomOf(g.original, model.scene.wardrobes), { x: f.x + p.x - g.ground.x, z: f.z + p.z - g.ground.z, angle: f.angle }, g.lock, e.shiftKey);
-    g.lock = out.lock;
-    g.guides = [...out.guides];
-    return out.pose;
-  }
-
   /** Starts turning the selected furnishing by its turn handle, as a wardrobe is turned: the pointer sweeps round its middle. */
   function beginTurn(e: PointerEvent, target: HTMLElement) {
     const studio = room(), f = selected(studio), ground = picking.groundPoint(e);
@@ -99,15 +87,20 @@ export function createFurnishingEditor({ model, sceneCommands, history, picking,
     }
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < 4) return;
     g.moved = true;
-    const f = g.original.furnishings!.find(x => x.id === g.id)!, to = goal(g, f, e);
-    if (!to) return;
-    const now = model.scene.studio?.furnishings?.find(x => x.id === g.id) ?? f;
-    const want = (t: number) => moveFurnishing(g.original, g.id, { x: now.x + (to.x - now.x) * t, z: now.z + (to.z - now.z) * t, angle: to.angle });
-    const problem = (s: Studio) => sceneCommands.furnishingProblem(s, g.id);
-    const whole = want(1), result = furthestValid(want, s => !problem(s));
-    if (!result.whole) g.guides = [];
-    g.reason = whole ? problem(whole) : null;
-    if (result.room) model.scene.studio = result.room;
+    const f = g.original.furnishings!.find(x => x.id === g.id)!, p = picking.groundPoint(e);
+    if (!p) return;
+    const now = room()?.furnishings?.find(x => x.id === g.id) ?? f;
+    const result = furnishingPiece(f).move(roomOf(g.original, model.scene.wardrobes), {
+      x: f.x + p.x - g.ground.x, z: f.z + p.z - g.ground.z, angle: f.angle,
+    }, { lock: g.lock, free: e.shiftKey, from: now, problem: pose => {
+      const next = moveFurnishing(g.original, g.id, pose);
+      return next ? sceneCommands.furnishingProblem(next, g.id) : 'Choose a furnishing first.';
+    } });
+    g.lock = result.lock;
+    g.guides = [...result.guides];
+    g.reason = result.reason ?? null;
+    const next = result.value && moveFurnishing(g.original, g.id, result.value);
+    if (next) model.scene.studio = next;
     callbacks.redraw();
   }
   /** Ends a drag: one undo step if it moved. Returns whether it moved, so a tap is left to selection. */

@@ -1,4 +1,4 @@
-import { getDecor, type TargetZone } from './decor-catalog';
+import { decorCatalog, getDecor, type TargetZone } from './decor-catalog';
 
 import { HANDLE_FINISHES, type HandleFinish, type HandleKind, type HandleSize } from '../wardrobe/handles';
 // Handle finishes, kinds and sizes are the handle registry's (domain/wardrobe/handles.ts).
@@ -41,6 +41,35 @@ export function resolveMaterials(design: { materials?: ConfiguredMaterialsState 
 export function assertDecorZone(id: string, zone: TargetZone) {
   if (!getDecor(id).allowedZones.includes(zone)) throw new Error(`Board decor ${id} is not allowed for ${zone}`);
 }
+type BoardFinishDesign = {
+  product?: string | undefined; fin?: LegacyFinish | undefined;
+  doors?: 'none' | 'hinged' | 'glass' | undefined; materials?: ConfiguredMaterialsState | undefined;
+};
+const boardZones = Object.keys(materialZoneFields) as TargetZone[];
+const boardGroups = boardZones.map(id => ({ id, choices: decorCatalog.filter(decor => decor.allowedZones.includes(id)) }));
+const kitchenOnlyZone = (zone: TargetZone) => zone === 'worktop' || zone === 'backsplash';
+
+export const boardFinishGroups = (design: BoardFinishDesign) =>
+  boardGroups.filter(group => design.product === 'kitchen' || !kitchenOnlyZone(group.id));
+
+/** The same board finish edit used by the materials panel and by room-piece commands. */
+export function withBoardFinish<D extends BoardFinishDesign>(design: D, group: string, id: string): D | null {
+  const finish = boardFinishGroups(design).find(g => g.id === group), decor = finish?.choices.find(choice => choice.id === id);
+  if (!finish || !decor) return null;
+  const zone = finish.id, materials = { ...resolveMaterials({ materials: design.materials, fin: design.fin ?? 'Oak' }) };
+  const linked = (zone === 'carcass' || zone === 'fronts') && materials.linkedDecors;
+  const compatible = decor.allowedZones.includes('carcass') && decor.allowedZones.includes('fronts');
+  if (linked && compatible) materials.carcassDecorId = materials.frontDecorId = id;
+  else { materials[materialZoneFields[zone]] = id; if (linked) materials.linkedDecors = false; }
+  const next = { ...design, materials };
+  if (zone === 'fronts') {
+    const glass = decor.category === 'glass_mirror';
+    if (glass || design.doors !== 'none') next.doors = glass ? 'glass' : 'hinged';
+    if (glass) materials.frontProfile = 'slab';
+  }
+  return next;
+}
+
 export const hardwareDescription = (finish: HandleFinish) => finish === 'handleless_tip_on'
   ? 'Flush handleless push-to-open fronts with clean 2mm shadow gaps (zero visible handles)'
   : `${finish.replaceAll('_', ' ')} pulls; preserve configured positions and orientation`;

@@ -1,4 +1,4 @@
-import { assertDecorZone, defaultMaterials, materialZoneFields, resolveMaterials, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
+import { assertDecorZone, defaultMaterials, resolveMaterials, withBoardFinish, HANDLE_FINISHES, ACCESSORY_FINISHES, type HandleFinish, type AccessoryFinish } from '../../domain/materials/configured-materials';
 import { getDecor, type TargetZone } from '../../domain/materials/decor-catalog';
 import { designerPalettes } from '../../domain/materials/designer-palettes';
 import { DEFAULT_HANDLE, HANDLE_KINDS, handleKind, handleSizeFits, type HandleKind, type HandleSize } from '../../domain/wardrobe/handles';
@@ -37,20 +37,9 @@ export function createAppearanceCommands({ getDesign, effects, run }: Ports) {
     }
     function setDecor(zone: TargetZone, id: string) {
         assertDecorZone(id, zone);
-        if ((zone === 'worktop' || zone === 'backsplash') && getDesign().product !== 'kitchen') return false;
-        run(() => {
-            const materials = { ...resolveMaterials(getDesign()) };
-            const linked = (zone === 'carcass' || zone === 'fronts') && materials.linkedDecors;
-            const compatible = getDecor(id).allowedZones.includes('carcass') && getDecor(id).allowedZones.includes('fronts');
-            if (linked && compatible) materials.carcassDecorId = materials.frontDecorId = id;
-            else { materials[materialZoneFields[zone]] = id; if (linked) materials.linkedDecors = false; }
-            if (zone === 'fronts') {
-                const glass = getDecor(id).category === 'glass_mirror';
-                if (glass || getDesign().doors !== 'none') getDesign().doors = glass ? 'glass' : 'hinged';
-                if (glass) materials.frontProfile = 'slab';
-            }
-            getDesign().materials = materials;
-        });
+        const next = withBoardFinish(getDesign(), zone, id);
+        if (!next) return false;
+        run(() => { Object.assign(getDesign(), next); });
         return true;
     }
     function applyDesignerPalette(id: string) {

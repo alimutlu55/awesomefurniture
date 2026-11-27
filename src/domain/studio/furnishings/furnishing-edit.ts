@@ -6,9 +6,9 @@ import { nextId } from '../studio';
 import type { Studio, StudioFurnishing } from '../studio';
 import type { Pose } from '../studio-placement';
 import { furnishingType, startFurnishingType } from './furnishing-kinds';
-import { furnishingPoint } from './furnishing-place';
+import { Furnishing } from '../../pieces/furnishing-piece';
+import { changePieceLook, roundPiece as round } from '../../pieces/piece';
 
-const round = (n: number) => Math.round(n * 10) / 10;
 const turn = (angle: number) => round(((angle % 360) + 360) % 360);
 const withFurnishings = (studio: Studio, furnishings: readonly StudioFurnishing[]): Studio => {
   if (furnishings.length) return { ...studio, furnishings };
@@ -47,29 +47,22 @@ export const turnFurnishing = (studio: Studio, id: string, angle: number) => swa
 
 /** Sets its width, depth or height. Width grows from its middle; depth from its back, so a bed against a wall stays there. */
 export function setFurnishingSize(studio: Studio, id: string, size: Partial<Pick<StudioFurnishing, 'width' | 'depth' | 'height'>>): Studio | null {
-  return swap(studio, id, f => {
-    const depth = size.depth === undefined ? f.depth : round(size.depth), at = furnishingPoint(f, 0, (depth - f.depth) / 2);
-    return { ...f, ...size.width !== undefined ? { width: round(size.width) } : {}, ...size.height !== undefined ? { height: round(size.height) } : {},
-      depth, x: round(at.x), z: round(at.z) };
-  });
+  return swap(studio, id, f => new Furnishing(f).withSize(size));
 }
 
-/** Changes its type and takes that type's size, its back kept where it is (a single bed becomes a king against the same wall). */
 export function setFurnishingType(studio: Studio, id: string, type: string): Studio | null {
-  const f = studio.furnishings?.find(x => x.id === id), t = f && furnishingType(f.kind, type);
-  if (!f || !t) return null;
-  if (t.id === f.type) return studio;
-  const sized = setFurnishingSize(studio, id, t.size);
-  return sized && swap(sized, id, x => ({ ...x, type: t.id }));
+  const f = studio.furnishings?.find(x => x.id === id);
+  if (!f) return null;
+  const next = new Furnishing(f).withType(type);
+  return next === f ? studio : swap(studio, id, () => next);
 }
 
-/** Sets its fabric or wood. The first finish of a group is stored as absent. */
 export function setFurnishingLook(studio: Studio, id: string, look: Partial<Pick<StudioFurnishing, 'fabric' | 'wood'>>): Studio | null {
-  return swap(studio, id, f => {
-    const next: Record<string, unknown> = { ...f, ...look };
-    for (const [k, v] of Object.entries(look)) if (v === undefined) delete next[k];
-    return next as unknown as StudioFurnishing;
-  });
+  return swap(studio, id, f => changePieceLook<StudioFurnishing>(f, look));
+}
+
+export function setFurnishingFinish(studio: Studio, id: string, group: string, choice: string): Studio | null {
+  return swap(studio, id, f => new Furnishing(f).withFinish(group, choice));
 }
 
 export function removeFurnishing(studio: Studio, id: string): Studio | null {

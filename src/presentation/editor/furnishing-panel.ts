@@ -1,7 +1,7 @@
 import type { Studio, StudioFurnishing } from '../../domain/studio/studio';
-import { FURNISHING_FINISHES, FURNISHING_FINISH_NAMES, furnishingKind } from '../../domain/studio/furnishings/furnishing-kinds';
+import { FURNISHING_FINISH_NAMES, furnishingKind } from '../../domain/studio/furnishings/furnishing-kinds';
 import type { FurnishingFinishGroup } from '../../domain/studio/furnishings/furnishing-kinds';
-import { setFurnishingLook, setFurnishingType } from '../../domain/studio/furnishings/furnishing-edit';
+import { furnishingPiece } from '../../domain/pieces/pieces';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { furnishingTypeArt } from './furnishing-art';
 import { esc } from './editor-format.js';
@@ -10,7 +10,7 @@ interface FurnishingPanelPorts {
   document: Pick<Document, 'createElement'>;
   getStudio(): Studio | undefined;
   getSelection(): RoomSelection;
-  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'editFurnishing'>>;
+  sceneCommands: Readonly<Pick<ReturnType<typeof import('../../application/commands/piece-commands').createPieceCommands>, 'commitPiece'>>;
   refresh(): void;
   listen(target: EventTarget, event: string, handler: (e: Event) => void): void;
 }
@@ -30,15 +30,14 @@ export function createFurnishingPanel({ document, getStudio, getSelection, scene
     `<button type="button" class="fixture-choice" ${data} aria-pressed="${on}" title="${esc(name + ' · ' + note)}">${art}<b>${esc(name)}</b><small>${esc(note)}</small></button>`;
 
   function typeMarkup(f: StudioFurnishing) {
-    const k = furnishingKind(f.kind)!;
     return '<div class="fixture-choices" role="group" aria-label="Type">'
-      + k.types.map(t => card(`data-furnishing-type="${t.id}"`, t.id === f.type, furnishingTypeArt(f.kind, t.size, t.name), t.name, t.note)).join('') + '</div>';
+      + furnishingPiece(f).types().map(t => card(`data-furnishing-type="${t.id}"`, t.id === f.type, furnishingTypeArt(f.kind, t.size, t.name), t.name, t.note)).join('') + '</div>';
   }
   function finishMarkup(f: StudioFurnishing) {
-    return furnishingKind(f.kind)!.finishes.map((group: FurnishingFinishGroup) => {
-      const chosen = f[group] ?? FURNISHING_FINISHES[group][0]!.id;
+    return furnishingPiece(f).finishGroups().map(({ id: group, choices }) => {
+      const chosen = f[group] ?? choices[0]!.id;
       return `<b class="fixture-label">${FURNISHING_FINISH_NAMES[group]}</b><div class="wall-paint-swatches fixture-swatches" role="group" aria-label="${FURNISHING_FINISH_NAMES[group]}">`
-        + FURNISHING_FINISHES[group].map(x => `<button type="button" data-furnishing-finish="${group}:${x.id}" aria-pressed="${x.id === chosen}" title="${esc(x.name)}">`
+        + choices.map(x => `<button type="button" data-furnishing-finish="${group}:${x.id}" aria-pressed="${x.id === chosen}" title="${esc(x.name)}">`
           + `<i style="background:${x.color}"></i><span>${esc(x.name)}</span></button>`).join('') + '</div>';
     }).join('');
   }
@@ -53,10 +52,10 @@ export function createFurnishingPanel({ document, getStudio, getSelection, scene
     const b = (e.target as Element).closest<HTMLElement>('[data-furnishing-type],[data-furnishing-finish]'), f = selected();
     if (!b || !f) return;
     const { furnishingType: type, furnishingFinish: look } = b.dataset;
-    if (type) sceneCommands.editFurnishing(f.id, r => setFurnishingType(r, f.id, type));
+    if (type) sceneCommands.commitPiece({ family: 'furnishing', id: f.id }, { action: 'type', id: type });
     else if (look) {
       const [group, id] = look.split(':') as [FurnishingFinishGroup, string];
-      sceneCommands.editFurnishing(f.id, r => setFurnishingLook(r, f.id, { [group]: id === FURNISHING_FINISHES[group][0]!.id ? undefined : id }));
+      sceneCommands.commitPiece({ family: 'furnishing', id: f.id }, { action: 'finish', group, id });
     }
     refresh();
     render();

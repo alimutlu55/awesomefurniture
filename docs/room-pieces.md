@@ -1,21 +1,21 @@
 # Room pieces: one model for everything that stands in a room
 
-Status: **design, not built.** Written 2026-11-27 after furnishings shipped without the 3D turn handle wardrobes have.
+The [room-piece model](../src/domain/pieces/piece-model.ts), [registry and factory](../src/domain/pieces/pieces.ts), and
+[shared commands](../src/application/commands/piece-commands.ts) are the editor entry points. The existing saved JSON
+is read through the piece classes. Cabinet installation and ceiling fitting run through the cabinet adapter.
 
-## Why
+## Before the migration
 
-Wardrobes, kitchen units, fixtures (toilet, basin) and furnishings (bed, rug) are four separate stacks. Each one
-re-implements moving, turning, collision, snapping and gap readings, and each new kind gets only the parts someone
-remembered to copy:
+Wardrobes, kitchen units, fixtures and furnishings had separate implementations of moving, turning, collision, snapping and gap readings.
 
-| Today | Count | Where |
+| Previous structure | Count | Where |
 |---|---|---|
 | Drag implementations | 7 | `cabinet-drag.js`, `studio-2d-gestures.ts` (×2), `fixture-editor.ts`, `furnishing-editor.ts`, `studio-2d-furnishings.ts`, `studio-editor.ts` |
 | Turn implementations | 5 | `cabinet-drag.js` + `viewport-handles.js`, `studio-2d-rotate.ts`, `turnStudioFurnishing`, the typed angle in `studio-fields.ts`, `setCabinetPose` |
 | Pose / footprint types | 8 | `Pose`, `Footprint`, `Standing`, `Obstacle`, `PlacedBox`, `UnitPose`, `PanelPose`, renderer `Footprint` |
 | Command sets that are clones | 2 | `fixture-commands.ts`, `furnishing-commands.ts` |
 
-What the copying has already got wrong:
+That duplication caused the following issues:
 - Furnishings have no 3D turn handle.
 - The 2D turn of a furnishing does not push it out of a wall, but R does.
 - A fixture's gaps ignore wardrobes and beds.
@@ -56,6 +56,8 @@ interface Outcome<T> { readonly value: T | null; readonly reason?: string; reado
 ```
 
 ### Capability interfaces (one per action)
+
+The examples describe the design. The source interfaces define the exact parameters and return types.
 
 ```ts
 interface Placeable  { body(): Body; place(room: Room, hint: PlaceHint): Pose | null }           // where a new one goes
@@ -118,8 +120,8 @@ cabinet's Make and drawings stay in their own modules, called from the concrete 
 
 ### One registry
 
-`PIECE_KINDS` lists every kind once, each entry pointing at its existing registry: `FURNITURE`, `KITCHEN_UNITS`,
-`FIXTURES` and `FURNISHINGS`. An entry gives:
+`PIECE_KINDS` is grouped by family and derived from `FURNITURE`, `PIECE_PRESETS`, `KITCHEN_UNITS`,
+`KITCHEN_PRESETS`, `FIXTURES` and `FURNISHINGS`. An entry gives:
 - its family (which concrete class);
 - its sizes and types;
 - its placing;
@@ -132,16 +134,16 @@ missing something fails with the step named.
 
 ## Layer 2: application (one command set)
 
-`createPieceCommands(getScene, { checkpoint, report })` replaces `fixture-commands.ts`, `furnishing-commands.ts` and the pose
+`createPieceCommands(getScene, options)` replaces `fixture-commands.ts`, `furnishing-commands.ts` and the pose
 half of `scene-commands.ts`:
 
 | Command | What it does, for any piece |
 |---|---|
-| `add(kind, hint)` | `place()`, then validation and one undo step. Returns the key or the reason |
-| `preview(key, edit)` | A live move, turn or resize while dragging. No checkpoint |
-| `commit(key, edit)` | The same edit as one undo step, refused with the reason |
-| `duplicate(key)`, `remove(key)` | `copyPose()` and validation |
-| `problem(room, key)` | The room's rules plus every body that collides |
+| `addPiece(kind, hint)` | `place()`, then validation and one undo step. Returns the key or the reason |
+| `previewPiece(key, edit)` | A live move, turn or resize while dragging. No checkpoint |
+| `commitPiece(key, edit)` | The same edit as one undo step, refused with the reason |
+| `duplicatePiece(key)`, `removePiece(key)` | `copyPose()` and validation |
+| `pieceProblem(key)` | The room's rules plus every body that collides |
 
 Analytics are counted here once, with copies counted too.
 

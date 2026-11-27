@@ -96,7 +96,8 @@ fs.mkdirSync(shots,{recursive:true});
   assert.equal(await context(),'room-furnishing','the new bed is selected');
   assert.deepEqual(await actions(),['furnishing-type','fixture-size','fixture-finish','more']);
   assert.equal(await steps(),before+1,'adding it is one undo step');
-  let [bed]=await saved();
+  let [bed]=await saved(now=>now.length===1);
+  assert.ok(bed,'the new bed was saved in the draft');
   assert.equal(bed.kind,'bed');assert.equal(bed.type,'king');
   assert.ok((await rulers()).length>=2,'the free floor around it is measured: '+await rulers());
   await shot('bed');
@@ -108,7 +109,7 @@ fs.mkdirSync(shots,{recursive:true});
   assert.equal(await page.locator('[data-furnishing-type="single"]').getAttribute('aria-pressed'),'true');
   await shot('type');
   await close();
-  [bed]=await saved();
+  [bed]=await saved(now=>now[0]?.width===98);
   assert.equal(bed.width,98,'a single is 98 cm wide with its frame');
 
   // Dragged by its body on the model: it moves, as one step.

@@ -3,7 +3,6 @@ import { wallLine } from '../../domain/studio/studio';
 import { fixturePiece, roomOf } from '../../domain/pieces/pieces';
 import type { PieceTarget } from '../../domain/pieces/piece-model';
 import type { RoomSelection } from '../viewport/studio-renderer';
-import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
 import { fixtureMeasures, fixtureMeasureText } from './fixture-measures';
 import type { RoomMeasure } from './studio-editor.ports';
@@ -69,16 +68,16 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     const f = g.original.fixtures!.find(x => x.id === g.id)!, w = g.original.walls.find(x => x.id === f.wall), line = w && wallLine(g.original, w);
     if (!line) return;
     const piece = fixturePiece(f), raw = f.offset + along(e, g, line.ux, line.uz);
-    const aim = piece.aimAlong(roomOf(g.original, model.scene.wardrobes), raw, g.lock, e.shiftKey, fixtureMeasureText);
-    g.lock = aim.lock;
-    g.guides = aim.guides;
     const from = room()?.fixtures?.find(x => x.id === g.id)?.offset ?? f.offset;
-    const want = (t: number) => piece.slide(g.original, from + (aim.offset - from) * t);
-    const problem = (s: Studio) => sceneCommands.fixtureProblem(s, g.id);
-    const whole = want(1), result = furthestValid(want, s => !problem(s));
-    if (!result.whole) g.guides = [];
-    g.reason = whole ? problem(whole) : null;
-    if (result.room) model.scene.studio = result.room;
+    const result = piece.moveAlong(roomOf(g.original, model.scene.wardrobes), raw, from, g.lock, e.shiftKey, offset => {
+      const next = piece.slide(g.original, offset);
+      return next ? sceneCommands.fixtureProblem(next, g.id) : 'Choose a fixture first.';
+    }, fixtureMeasureText);
+    g.lock = result.lock;
+    g.guides = [...result.guides];
+    g.reason = result.reason;
+    const next = result.value === null ? null : piece.slide(g.original, result.value);
+    if (next) model.scene.studio = next;
     callbacks.redraw();
   }
   /** Ends a drag: one undo step if it moved. Returns whether it moved, so a tap is left to selection. */
