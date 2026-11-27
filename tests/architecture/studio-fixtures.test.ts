@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createEditorState } from '../../src/application/projects/editor-state';
 import { createEditorModel } from '../../src/application/projects/editor-model';
 import { createSceneCommands } from '../../src/application/commands/scene-commands';
 import { rectangleStudio } from '../../src/domain/studio/studio-templates';
@@ -8,6 +9,9 @@ import type { Studio, StudioFixture } from '../../src/domain/studio/studio';
 import { addOpening, moveCorner, moveWall, removeWall, splitWall } from '../../src/domain/studio/studio-edit';
 import { setCeilingDepth } from '../../src/domain/studio/studio-ceiling';
 import { studioProblems } from '../../src/domain/studio/studio-validation';
+import { fixturePiece, roomOf } from '../../src/domain/pieces/pieces';
+import { addFurnishing, moveFurnishing } from '../../src/domain/studio/furnishings/furnishing-edit';
+import { fixtureMeasures, fixtureMeasureText } from '../../src/presentation/editor/fixture-measures';
 import { studioObstacles } from '../../src/domain/studio/studio-obstacles';
 import { createCabinetGeometry } from '../../src/domain/geometry/cabinet-geometry';
 import { BOXING, FINISHES, FIXTURES, TAPS } from '../../src/domain/studio/fixtures/fixture-kinds';
@@ -232,4 +236,24 @@ test('a new basin goes fully in front of a boxing or clear of it, never half on 
   const id = e.commands.addStudioFixture('basin', 'w1', to)!, f = e.fixture(id), l = f.offset - f.width / 2, r = f.offset + f.width / 2;
   assert.ok(!(l < from && from < r) && !(l < to && to < r), `basin ${l}–${r}, boxing ${from}–${to}`);
   assert.deepEqual(studioProblems(e.studio()), []);
+});
+
+test('a fixture measures to a bed and a wardrobe, keeping its wall projection and its remaining editable wall gap', () => {
+  const base = toiletOn(rectangleStudio(650, 500), 150).studio;
+  const toilet = base.fixtures![0]!, place = fixturePlace(base, toilet)!;
+  const depth = 212, front = toilet.depth + 30 + depth / 2;
+  const studio = addFurnishing(base, 'bed', { ...place.at(toilet.offset, front), angle: place.solid.angle }, 'single')!;
+  const wardrobe = { id: 1, ...place.at(toilet.offset + toilet.width / 2 + 25 + 30, 30), angle: place.solid.angle,
+    state: { ...createEditorState(), w: 60, d: 60, h: 200 } };
+  const labels = fixtureMeasures(roomOf(studio, [wardrobe]), toilet, false);
+  assert.ok(labels.some(m => m.text === fixtureMeasureText(25) && !m.edit));
+  assert.ok(labels.some(m => m.text === fixtureMeasureText(30) && m.tone === 'warn'));
+  assert.ok(labels.some(m => m.text === fixtureMeasureText(toilet.depth)));
+  assert.ok(labels.some(m => m.edit === 'left'));
+  assert.equal(labels.some(m => m.edit === 'right'), false);
+
+  const bed = studio.furnishings![0]!;
+  const overlapped = moveFurnishing(studio, bed.id, { ...place.at(toilet.offset, front - 40), angle: bed.angle })!;
+  assert.ok(fixturePiece(toilet).clashes(roomOf(overlapped)).some(message => /toilet runs into the bed/.test(message)));
+  assert.ok(studioProblems(overlapped).some(message => /toilet runs into the bed/.test(message)));
 });

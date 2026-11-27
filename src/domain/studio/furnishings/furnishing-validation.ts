@@ -5,7 +5,7 @@
  */
 import type { Studio, StudioFurnishing } from '../studio';
 import { FURNISHING_FINISHES, furnishingKind, furnishingType } from './furnishing-kinds';
-import { furnishingPiece, studioBodies } from '../../pieces/pieces';
+import { fixturePiece, furnishingPiece } from '../../pieces/pieces';
 
 const EPS = .01;
 export const furnishingNoun = (f: Pick<StudioFurnishing, 'kind'>) => furnishingKind(f.kind)?.name.toLowerCase() ?? 'furnishing';
@@ -27,9 +27,9 @@ export function furnishingProblems(f: StudioFurnishing): string[] {
   return out;
 }
 
-/** Furnishings that run into a wall, a shape standing on the floor, a doorway, a fixture or each other: the rule every
- * piece shares (domain/pieces/piece.ts), here with the room's own pieces. */
+/** Check floor pieces against the room and each other, and each fixture against the furnishings. */
 export function furnishingClashes(studio: Studio): string[] {
-  const room = { studio, bodies: studioBodies(studio) };
-  return (studio.furnishings ?? []).flatMap(f => furnishingPiece(f).clashes(room));
+  const furnishings = (studio.furnishings ?? []).map(furnishingPiece);
+  const room = { studio, bodies: furnishings.map(piece => piece.body(studio)) };
+  return [...furnishings, ...(studio.fixtures ?? []).map(fixturePiece)].flatMap(piece => piece.clashes(room));
 }

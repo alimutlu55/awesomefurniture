@@ -62,16 +62,20 @@ export abstract class Piece<D> implements Placeable, Collidable, Measurable, Res
     if (!this.blocks) return out;
     if (studio && groundedShapes(studio).some(o => overlaps(me, o))) out.push(`The ${this.noun} runs into a pillar or boxing. Move it.`);
     if (studio && this.keepsDoorwaysClear && doorways(studio).some(o => overlaps(me, o))) out.push(`The ${this.noun} stands in a doorway. Move it.`);
+    return [...out, ...this.pieceClashes(room, me)];
+  }
+
+  protected pieceClashes(room: Room, me = shrink(bodyObstacle(this.body(room.studio)))): string[] {
     const other = room.bodies.find(b => !sameKey(b.key, this.key) && this.collidesWith(b) && overlaps(me, shrink(bodyObstacle(b))));
-    if (other) out.push(`The ${this.noun} runs into the ${other.noun}. Move one of them.`);
-    return out;
+    return other ? [`The ${this.noun} runs into the ${other.noun}. Move one of them.`] : [];
   }
 
   /** The free floor on each side to the walls and every other piece, from the middle of each side, short where it is
    * less than a person needs (in front of a desk, beside and at the foot of a bed). */
-  gaps(room: Room): PieceGap[] {
+  gaps(room: Room, { includeWalls = true, includeContact = false } = {}): PieceGap[] {
     const b = this.body(room.studio), others = room.bodies.filter(o => o.blocks && !sameKey(o.key, this.key)).map((o, i) => bodyBox(o, -1 - i));
-    return gapsAround(bodyBox(b, 0), others, room.studio, ['left', 'right', 'front', 'back']).filter(g => g.distance > .5 && g.distance < 400).flatMap(g => {
+    const walls = includeWalls ? room.studio : undefined;
+    return gapsAround(bodyBox(b, 0), others, walls, ['left', 'right', 'front', 'back']).filter(g => (includeContact || g.distance > .5) && g.distance < 400).flatMap(g => {
       const line = steadyLine(b, g.side, g.distance), side = g.side as PieceGap['side'];
       if (!line) return [];
       const need = side === 'front' ? this.needs.front : side === 'left' || side === 'right' ? this.needs.sides : 0;

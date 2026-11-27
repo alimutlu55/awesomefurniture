@@ -1,12 +1,11 @@
 import type { Studio, StudioFixture } from '../../domain/studio/studio';
-import { wallFace, wallLine } from '../../domain/studio/studio';
-import { slideFixture } from '../../domain/studio/fixtures/fixture-setup';
-import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
+import { wallLine } from '../../domain/studio/studio';
+import { fixturePiece, roomOf } from '../../domain/pieces/pieces';
+import type { PieceTarget } from '../../domain/pieces/piece-model';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import { furthestValid } from './studio-drag';
 import type { Guide } from './studio-drag';
-import { fixtureGuide, fixtureMeasures, fixtureTargets } from './fixture-drag';
-import type { FixtureTarget } from './fixture-drag';
+import { fixtureMeasures, fixtureMeasureText } from './fixture-measures';
 import type { RoomMeasure } from './studio-editor.ports';
 
 type Point = { x: number; y: number; z: number };
@@ -14,7 +13,7 @@ type Commands = Readonly<Pick<ReturnType<typeof import('../../application/comman
   'addStudioFixture' | 'editFixture' | 'fixtureProblem' | 'duplicateStudioFixture' | 'removeStudioFixture'>>;
 interface Drag {
   id: string; pointer: number; target: HTMLElement; snapshot: string; original: Studio; at: Point; client: { x: number; y: number };
-  moved: boolean; lock: FixtureTarget | null; guides: Guide[]; reason: string | null;
+  moved: boolean; lock: PieceTarget | null; guides: Guide[]; reason: string | null;
 }
 
 export interface FixtureEditorPorts {
@@ -42,7 +41,6 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     const s = selection();
     return s?.kind === 'fixture' ? studio?.fixtures?.find(f => f.id === s.id) : undefined;
   };
-  const tolerance = () => AUTO_ALIGN_CM;
 
   /** Pointer travel along the fixture's wall, in centimetres, measured on screen. */
   function along(e: PointerEvent, g: Drag, ux: number, uz: number) {
@@ -68,14 +66,14 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     if (!g || e.pointerId !== g.pointer) return;
     if (!g.moved && Math.hypot(e.clientX - g.client.x, e.clientY - g.client.y) < 4) return;
     g.moved = true;
-    const f = g.original.fixtures!.find(x => x.id === g.id)!, w = g.original.walls.find(x => x.id === f.wall), line = w && wallLine(g.original, w), face = w && wallFace(g.original, w);
-    if (!line || !face) return;
-    const raw = f.offset + along(e, g, line.ux, line.uz);
-    const hit = e.shiftKey ? null : resolveAlignment(raw, fixtureTargets(g.original, f), { tolerance: tolerance(), hold: 1, lock: g.lock, within: [face.start + f.width / 2, face.end - f.width / 2] });
-    g.lock = hit;
-    g.guides = hit ? fixtureGuide(g.original, f, hit) : [];
-    const goal = hit ? hit.v : raw, from = model.scene.studio?.fixtures?.find(x => x.id === g.id)?.offset ?? f.offset;
-    const want = (t: number) => slideFixture(g.original, g.id, from + (goal - from) * t);
+    const f = g.original.fixtures!.find(x => x.id === g.id)!, w = g.original.walls.find(x => x.id === f.wall), line = w && wallLine(g.original, w);
+    if (!line) return;
+    const piece = fixturePiece(f), raw = f.offset + along(e, g, line.ux, line.uz);
+    const aim = piece.aimAlong(roomOf(g.original, model.scene.wardrobes), raw, g.lock, e.shiftKey, fixtureMeasureText);
+    g.lock = aim.lock;
+    g.guides = aim.guides;
+    const from = room()?.fixtures?.find(x => x.id === g.id)?.offset ?? f.offset;
+    const want = (t: number) => piece.slide(g.original, from + (aim.offset - from) * t);
     const problem = (s: Studio) => sceneCommands.fixtureProblem(s, g.id);
     const whole = want(1), result = furthestValid(want, s => !problem(s));
     if (!result.whole) g.guides = [];
@@ -99,7 +97,7 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
   /** Slides the selected fixture `by` centimetres along its wall (positive towards corner b). */
   function nudge(by: number) {
     const f = selected();
-    if (!f || !sceneCommands.editFixture(f.id, r => slideFixture(r, f.id, f.offset + by))) return false;
+    if (!f || !sceneCommands.editFixture(f.id, r => fixturePiece(f).slide(r, f.offset + by))) return false;
     callbacks.refresh();
     return true;
   }
@@ -129,6 +127,9 @@ export function createFixtureEditor({ model, sceneCommands, history, picking, se
     dragging: () => drag !== null,
     dragKey: () => drag?.moved ? 'fixture:' + drag.id : null,
     guides: () => drag?.guides ?? [],
-    measures: (): RoomMeasure[] => { const f = selected(); return f && room() ? fixtureMeasures(room()!, f.id, !!drag?.moved) : []; },
+    measures: (): RoomMeasure[] => {
+      const studio = room(), f = selected(studio);
+      return studio && f ? fixtureMeasures(roomOf(studio, model.scene.wardrobes), f, !!drag?.moved) : [];
+    },
   };
 }

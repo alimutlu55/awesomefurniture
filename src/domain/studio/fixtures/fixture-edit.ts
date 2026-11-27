@@ -2,9 +2,10 @@
  * Fixture edits. Each takes a studio and returns the edited copy, or null when the edit does not apply. They do not
  * validate: the caller checks studioProblems() and refuses an invalid result with its reason. Centimetres.
  */
-import { nextId, wall, wallFace, wallLine } from '../studio';
+import { nextId, wall, wallFace } from '../studio';
 import type { Studio, StudioCorner, StudioFixture } from '../studio';
 import { fixtureKind, fixtureType } from './fixture-kinds';
+import { Fixture } from '../../pieces/fixture-piece';
 
 const round = (n: number) => Math.round(n * 10) / 10;
 const withFixtures = (studio: Studio, fixtures: readonly StudioFixture[]): Studio => {
@@ -76,11 +77,8 @@ export function keepFixtures(before: Studio, corners: readonly StudioCorner[]): 
   if (!before.fixtures) return undefined;
   const after = { ...before, corners };
   return before.fixtures.map(f => {
-    const w = wall(before, f.wall), old = w && wallLine(before, w), now = w && wallLine(after, w), face = w && wallFace(after, w);
-    if (!old || !now || !face) return f;
-    const x = old.a.x + old.ux * f.offset, z = old.a.z + old.uz * f.offset, along = (x - now.a.x) * now.ux + (z - now.a.z) * now.uz;
-    const min = face.start + f.width / 2, max = face.end - f.width / 2;
-    return { ...f, offset: round(max < min ? along : Math.min(max, Math.max(min, along))) };
+    const offset = new Fixture(f).followWall(before, after);
+    return offset === null ? f : { ...f, offset };
   });
 }
 

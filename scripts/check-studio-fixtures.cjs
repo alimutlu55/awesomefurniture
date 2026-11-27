@@ -16,7 +16,7 @@ fs.mkdirSync(shots,{recursive:true});
  const browser=await chromium.launch({headless:true,executablePath:process.env.CHROME_PATH});
  try { for(const view of VIEWS) {
   const phone=view.width<=900;
-  const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:2});
+  const page=await browser.newPage({viewport:{width:view.width,height:view.height},isMobile:phone,hasTouch:phone,deviceScaleFactor:1});
   const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(base+'/editor.html');
   const el=id=>page.locator(`[data-editor-id="${id}"]`), toolbar=el('toolbar');
@@ -39,10 +39,8 @@ fs.mkdirSync(shots,{recursive:true});
   await el('add-furniture-btn').waitFor();
   await page.waitForTimeout(600);
 
-  // A room, then its back wall: Add › Fixtures › Toilet puts a toilet on that wall.
+  // The starter room has a back wall: Add › Fixtures › Toilet puts a toilet on that wall.
   await tap(page.getByRole('button',{name:'Studio'}).first());
-  await tap(toolbar.locator('[data-action="new"]:visible').first());
-  await tap(page.locator('[data-studio="bedroom"]:visible').first());
   await page.waitForTimeout(1200);
   const box=await el('view').boundingBox(), at={x:box.x+box.width*view.wall[0],y:box.y+box.height*view.wall[1]};
   if(phone) await page.touchscreen.tap(at.x,at.y); else await page.mouse.click(at.x,at.y);

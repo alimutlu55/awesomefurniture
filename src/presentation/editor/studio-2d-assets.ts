@@ -1,7 +1,7 @@
-import { wallFace, wallLine, type Studio } from '../../domain/studio/studio';
+import { wallLine, type Studio } from '../../domain/studio/studio';
 import { door2DPlan, wall2DPlan } from '../../domain/studio/studio-plan';
 import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
-import { slideFixture } from '../../domain/studio/fixtures/fixture-setup';
+import { fixturePiece } from '../../domain/pieces/pieces';
 import { moveOpening } from '../../domain/studio/studio-edit';
 import type { Point2D } from './studio-2d-canvas';
 
@@ -75,11 +75,12 @@ export function pickWallAsset(studio: Studio | null, point: Point2D, zoom: numbe
 
 /** Slide by the pointer's travel, not its absolute position: grabbing an edge never recentres the item. */
 export function slideWallAsset(studio: Studio, original: Studio, asset: WallAsset, from: Point2D, to: Point2D): Studio | null {
-  const item = asset.kind === 'opening' ? original.openings.find(o => o.id === asset.id) : original.fixtures?.find(f => f.id === asset.id);
+  const fixture = asset.kind === 'fixture' ? original.fixtures?.find(f => f.id === asset.id) : undefined;
+  const item = asset.kind === 'opening' ? original.openings.find(o => o.id === asset.id) : fixture;
   const wall = item && original.walls.find(w => w.id === item.wall), line = wall && wallLine(original, wall);
   if (!item || !wall || !line) return null;
   const offset = item.offset + (to.x - from.x) * line.ux + (to.z - from.z) * line.uz;
-  if (asset.kind === 'opening') return moveOpening(studio, asset.id, Math.round(offset));
-  const face = wallFace(original, wall); if (!face) return null;
-  return slideFixture(studio, asset.id, Math.max(face.start + item.width / 2, Math.min(face.end - item.width / 2, Math.round(offset))));
+  if (!fixture) return moveOpening(studio, asset.id, Math.round(offset));
+  const piece = fixturePiece(fixture), limits = piece.range(original);
+  return limits ? piece.slide(studio, Math.max(limits[0], Math.min(limits[1], Math.round(offset)))) : null;
 }
