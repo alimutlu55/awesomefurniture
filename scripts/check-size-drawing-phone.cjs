@@ -32,7 +32,7 @@ const base=process.env.MOBILE_TEST_URL||'http://127.0.0.1:5173';
     assert.ok(inputs.every(h=>h>0&&h<=48),`${engine} input height: ${inputs}`);
    };
    const fitted=async()=>{
-    assert.equal(await drawing.locator('[data-shape-act="fit"]').isVisible(),false,'opening a narrow wardrobe does not auto-zoom');
+    assert.equal(await drawing.locator('[data-shape-act="zoom-out"]').isDisabled(),true,'opening a narrow wardrobe does not auto-zoom');
     const stage=await drawing.locator('.surface-shape-stage').boundingBox();
     for(const corner of await drawing.locator('.shape-corner').all()){
      const r=await corner.boundingBox();

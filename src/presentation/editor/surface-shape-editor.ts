@@ -16,6 +16,8 @@ interface Drag {
   last: ProfileVertex[]; moved: boolean; merge: number | undefined; edge: number; badge: string; problem: string | null;
 }
 const len = (v: number) => measureNumber(Math.round(v * 10) / 10) + unitSuffix();
+/** Each press of + or − zooms by this much. */
+const ZOOM_STEP = 1.5;
 const HINT = 'Drag a corner or an edge. Tap an edge for a step or a new corner. Pinch or scroll to zoom.';
 
 /** The Shape editor: a wall or a ceiling shape drawn from the front or from the side, edited by its corners and
@@ -27,9 +29,11 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
   root.className = 'surface-shape';
   root.setAttribute('data-sheet-scroll', '');
   root.innerHTML = `<p class="surface-shape-hint">${HINT}</p>`
-    // Front, Side and Fit sit on the drawing itself, so they take no room from the panel.
+    // Front, Side and the zoom buttons sit on the drawing itself, so they take no room from the panel.
     + `<div class="surface-shape-stage"><div class="surface-shape-views" role="group" aria-label="Seen from"><button type="button" data-shape-view="front" aria-pressed="true">Front</button>`
-    + `<button type="button" data-shape-view="side" aria-pressed="false">Side</button><button type="button" data-shape-act="fit" class="surface-shape-fit">Fit</button></div>`
+    + `<button type="button" data-shape-view="side" aria-pressed="false">Side</button><span class="surface-shape-zoom">`
+    + `<button type="button" data-shape-act="zoom-out" aria-label="Zoom out" title="Zoom out">−</button>`
+    + `<button type="button" data-shape-act="zoom-in" aria-label="Zoom in" title="Zoom in">+</button></span></div>`
     + `<svg class="surface-shape-svg" tabindex="0" role="application" preserveAspectRatio="xMidYMid meet" `
     + `aria-label="Shape drawing. Drag corners and edges; arrow keys move what is picked"></svg>`
     + `<div class="surface-shape-pill" role="toolbar" aria-label="Edit what is picked" hidden></div><div class="surface-shape-badge" role="status" hidden></div></div>`
@@ -85,7 +89,7 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
     if (fitNext && !drag) { fitNext = false; if (backend.autoFocusNarrow !== false) focusNarrow(s); }
   }
   /** A part narrower on screen than a fingertip's reach (a wall's 12 cm cross-section) opens zoomed on its top,
-   * where it is usually shaped; Fit shows it whole. */
+   * where it is usually shaped; − zooms back out to show it whole. */
   function focusNarrow(s: SurfaceProfile) {
     const px = scale(), xs = s.points.map(p => p.x), ys = s.points.map(p => p.y), wide = (Math.max(...xs) - Math.min(...xs)) / px;
     if (!(wide > 0) || wide >= 72) return;
@@ -109,7 +113,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       b.setAttribute('aria-pressed', String(b.dataset.shapeView === s.view));
       b.title = b.dataset.shapeView === 'side' ? 'Seen from the side' : 'Seen face on from the room';
     });
-    root.querySelector<HTMLElement>('[data-shape-act="fit"]')!.hidden = !zoom.zoomed();
+    root.querySelector<HTMLButtonElement>('[data-shape-act="zoom-out"]')!.disabled = !zoom.zoomed();
+    root.querySelector<HTMLButtonElement>('[data-shape-act="zoom-in"]')!.disabled = !zoom.zoomable();
     root.querySelector<HTMLElement>('[data-shape-act="reset"]')!.textContent = backend.resetLabel?.(s) ?? 'Reset';
   }
   function renderPill(points: readonly ProfileVertex[]) {
@@ -190,8 +195,8 @@ export function createSurfaceShapeEditor({ document, model, sceneCommands, histo
       const r = removePoint(points, pick.index, s.bounds);
       if (!r) callbacks.report('Removing this corner would break the shape. Move it first.');
       else commit(r, null);
-    } else if (key === 'fit') {
-      zoom.reset(); render();
+    } else if (key === 'zoom-in' || key === 'zoom-out') {
+      zoom.step(key === 'zoom-in' ? ZOOM_STEP : 1 / ZOOM_STEP); render();
     } else if (key === 'undo' || key === 'redo') {
       pick = null;
       callbacks.history(key);

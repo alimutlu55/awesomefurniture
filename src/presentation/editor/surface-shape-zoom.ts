@@ -5,7 +5,7 @@ const MAX = 16;
 
 /** Zoom and pan of the Shape editor's drawing, so a small part (a wall's 12 cm cross-section, a short step) can
  * be worked on at a finger's size: a wheel zooms at the pointer, two fingers pinch and pan, one finger pans the
- * empty drawing while zoomed in, and Fit shows it whole. Works in the drawing's own centimetres (SVG y down). */
+ * empty drawing while zoomed in, and the − and + buttons zoom about the middle of what is on show. Works in the drawing's own centimetres (SVG y down). */
 export function createDrawingZoom() {
   let k = 1, centre: Vec | null = null, base: Box | null = null;
   let gesture: { kind: 'pan' | 'pinch'; k: number; centre: Vec; client: Vec; distance: number; perPx: number } | null = null;
@@ -31,6 +31,10 @@ export function createDrawingZoom() {
       return { x: c.x - whole.w / 2 / k, y: c.y - whole.h / 2 / k, w: whole.w / k, h: whole.h / k };
     },
     zoomed: () => k > 1,
+    /** Whether it can zoom in further. */
+    zoomable: () => k < MAX,
+    /** Zooms by `factor` about the middle of what is on show (the − and + buttons). */
+    step(factor: number) { if (base) zoomAt(centreOf(base), factor); },
     /** Shows the drawing zoomed by `factor` with `at` (SVG units) at its centre, as far as the drawing reaches. */
     frame(at: Vec, factor: number) {
       if (!base) return;
