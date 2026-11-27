@@ -33,10 +33,6 @@ const actions = {
     opening: [['opening-size', 'Size'], ['remove', 'Remove']],
     // A ceiling is drawn and sized in the same Size section.
     ceiling: [['ceiling-size', 'Size'], ['flip', 'Flip'], ['remove', 'Remove']],
-    // A toilet or basin: how it is fitted (with its boxing), its size, its finishes; More copies or removes it.
-    'room-fixture': [['fixture-type', 'Type', 'How it is fitted'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
-    // A bed, a rug or other loose furniture in the room: what size it is, its sizes, its fabric and wood; More turns, copies or removes it.
-    'room-furnishing': [['furnishing-type', 'Type', 'Its size'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
 };
 /** The menus of each kind of furniture's tools, by its furniture kind. */
 export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf()]));
@@ -45,8 +41,21 @@ export const furnitureMoreActions = Object.fromEntries(FURNITURE.map(m => [m.key
 export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
-export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
-export const furnishingMoreActions = [['turn', 'Turn 90°'], ['duplicate', 'Duplicate'], ['remove', 'Remove']];
+export const installationMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
+/** @param {import('../pieces/piece-model').Capabilities} capabilities */
+export function roomPieceMoreActions(capabilities) {
+    return [...(capabilities.turnable ? [['turn', 'Turn 90°']] : []), ...(capabilities.duplicable ? [['duplicate', 'Duplicate']] : []), ['remove', 'Remove']];
+}
+const roomPieceType = {
+    'room-fixture': ['fixture-type', 'Type', 'How it is fitted'],
+    'room-furnishing': ['furnishing-type', 'Type', 'Its size'],
+};
+/** @param {string[]} type
+ * @param {import('../pieces/piece-model').Capabilities} capabilities */
+function roomPieceActions(type, capabilities) {
+    return [...(capabilities.typed ? [type] : []), ...(capabilities.resizable ? [['fixture-size', 'Size']] : []),
+        ...(capabilities.finishable ? [['fixture-finish', 'Finish']] : []), ['more', 'More']];
+}
 export const itemMoreActions = [['stores', 'Stores']];
 /** A chosen leaf's Doors menu: its opening hung with one door up to MAX_LEAVES side by side. */
 export const leafCountActions = Array.from({ length: MAX_LEAVES }, (_, n) => ['leaves-' + (n + 1), n ? n + 1 + ' doors' : '1 door']);
@@ -57,6 +66,9 @@ export const makeViewActions = [['view-iso', '3D'], ['view-front', 'Front'], ['v
 export const fieldActions = ['leaf-facts'];
 /** Selections whose toolbar is a piece of furniture's: one per furniture kind. */
 export const furnitureContexts = FURNITURE.map(m => m.key);
-export function contextualActions(selection) {
-    return [...(actions[selection] || actions.none), ['undo', 'Undo'], ['redo', 'Redo']];
+/** @param {string} selection
+ * @param {import('../pieces/piece-model').Capabilities} [capabilities] */
+export function contextualActions(selection, capabilities) {
+    const type = roomPieceType[selection], tools = type ? capabilities ? roomPieceActions(type, capabilities) : [] : actions[selection] || actions.none;
+    return [...tools, ['undo', 'Undo'], ['redo', 'Redo']];
 }

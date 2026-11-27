@@ -28,6 +28,7 @@ import { fittingProduct } from '../../domain/wardrobe/fittings';
 import { furnitureKind, furnitureModule } from '../../domain/furniture/furniture';
 import { isFixture, installationKind } from '../../domain/kitchen/kitchen-units';
 import { OPENING_KINDS } from '../../domain/studio/wall-utilities';
+import { studioPiece } from '../../domain/pieces/pieces';
 /** @param {import('./mount-editor-bindings.ports').MountEditorBindingsPorts} ports */
 export function mountEditorBindings({ dom, picking, camera, rendering, interactions, inspector, planner, shell, cameraState, interactionState, renderState, selectionState, plannerState, shellState, geometry, resources, model, commands, sceneCommands, history, lifetime, elements, room, kitchenArray, make }) {
     const { $, document } = dom;
@@ -294,20 +295,19 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
         },
     });
     createContextualToolbar({document, root:$('#toolbar'), app:elements.app, undo:$('#undo2'), redo:$('#redo2'), lifetime, autoDesign:$('#launch-wizard'), state:leafToolState({ selectionState, model, widths: () => geometry.widths() }),
-        // A selected wall or opening of the room has its own actions.
         getSelection: () => {
             viewModes.sync();
-            // Make, while it is open, holds the toolbar: its own tools in place of the piece's.
             if (make.active) return 'make';
             if (selectionState.viewMode === 'studio' && selectionState.studioView === '2d') {
                 planner2D.render();
             }
-            // A selected toilet or basin has its own tools ('fixture' is a kitchen sink or hob's).
             if (selectionState.viewMode === 'studio') return { fixture: 'room-fixture', furnishing: 'room-furnishing' }[selectionState.room?.kind] ?? selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
             return leafContext(selectionState, model) ?? (state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : installationKind(state) ? 'installation' : isFixture(state) ? 'fixture' : furnitureKind(state));
         },
+        getRoomPiece: () => { const s = selectionState.room; return (s?.kind === 'fixture' || s?.kind === 'furnishing') && selectionState.viewMode === 'studio' && !make.active
+            ? studioPiece(model.scene.studio, { family: s.kind, id: s.id }) : undefined; },
         replacements: () => { const state = model.activeCabinet().state, module = furnitureModule(state);
             return Object.entries(MODS).filter(([key]) => key !== 'void' && module.allows(key, state)).map(([key,value]) => ['t-' + key,value.n]); },
         controls: key => {

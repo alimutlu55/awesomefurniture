@@ -36,9 +36,12 @@ fs.mkdirSync(shots,{recursive:true});
    return doc.studio?.furnishings??[]; });
   /** The furnishings once the draft has caught up with the last change (it is saved a moment after each edit). */
   let lastSaved='';
-  const saved=async()=>{ let now=await read();
-   for(let i=0;i<25&&JSON.stringify(now)===lastSaved;i++){ await page.waitForTimeout(200); now=await read(); }
-   lastSaved=JSON.stringify(now); return now; };
+  const saved=async(ready=now=>JSON.stringify(now)!==lastSaved)=>{
+   const deadline=Date.now()+30000;
+   let now=await read();
+   while(!ready(now)&&Date.now()<deadline){ await page.waitForTimeout(200); now=await read(); }
+   lastSaved=JSON.stringify(now); return now;
+  };
   const close=async()=>{
    if(await el('left-close').isVisible()) { await tap(el('left-close')); return; }
    const handle=el('left').locator('.mobile-sheet-handle');
@@ -127,20 +130,22 @@ fs.mkdirSync(shots,{recursive:true});
   const handle = {x:ring.x+ring.width/2,y:ring.y+ring.height/2};
   const turnStep = await steps();
   await drag(handle,{x:handle.x+Math.min(80,view.width*.18),y:handle.y-24});
-  const [swept] = await saved();
+  const [swept] = await saved(now=>now[0] && now[0].angle!==dragged.angle);
   assert.notEqual(swept.angle,dragged.angle,'dragging the 3D handle turns the bed');
   assert.equal(await steps(),turnStep+1,'turning with the 3D handle is one undo step');
   await shot('turned-3d');
   await tap(el('undo2'));
-  assert.equal((await saved())[0].angle,dragged.angle,'undo restores the angle before the drag');
+  assert.equal(await steps(),turnStep,'undo consumes the turn checkpoint');
+  const [restored]=await saved(now=>now[0]?.angle===dragged.angle);
+  assert.equal(restored.angle,dragged.angle,'undo restores the angle before the drag');
 
   // More › Turn 90°.
   await tap(toolbar.locator('[data-action="more"]'));
   await tap(page.locator('.contextual-popover [data-action="turn"]'));
-  const [turned]=await saved();
+  const [turned]=await saved(now=>now[0]?.angle===(dragged.angle+90)%360);
   assert.equal((turned.angle-dragged.angle+360)%360,90,'a quarter turn');
   await tap(el('undo2'));
-  await saved();
+  await saved(now=>now[0]?.angle===dragged.angle);
 
   // Size: its length typed; Finish: sage.
   await tap(toolbar.locator('[data-action="fixture-size"]'));
@@ -159,7 +164,7 @@ fs.mkdirSync(shots,{recursive:true});
   await addFurnishing('bedside');
   assert.equal(await context(),'room-furnishing');
   await addFurnishing('rug');
-  const list=await saved();
+  const list=await saved(now=>now.length===3);
   assert.deepEqual(list.map(f=>f.kind),['bed','bedside','rug']);
   await shot('furnished');
 
@@ -185,5 +190,5 @@ fs.mkdirSync(shots,{recursive:true});
   assert.deepEqual(errors,[],'no page errors');
   await page.close();
  } } finally { await browser.close(); }
- console.log('Studio furnishings: desktop and phone checks passed. Screenshots in',shots);
+ console.log(`Studio furnishings: ${VIEWS.map(view=>view.name).join(' and ')} checks passed. Screenshots in`,shots);
 })().catch(e=>{ console.error(e); process.exit(1); });

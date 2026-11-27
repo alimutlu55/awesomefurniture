@@ -35,7 +35,12 @@ export class Fixture extends WallPiece<StudioFixture> {
     const t = fixtureType(this.data.kind, this.data.type);
     return t?.limits ?? { width: [1, 1000], depth: [1, 1000], height: [1, 500] };
   }
-  override get capabilities(): Capabilities { return { ...super.capabilities, typed: true, finishable: true }; }
+  override get capabilities(): Capabilities {
+    const kind = fixtureKind(this.data.kind), type = fixtureType(this.data.kind, this.data.type);
+    const typed = !!kind?.tap || (kind?.setups?.length ?? kind?.types.length ?? 0) > 1;
+    const finishable = kind?.finishes.some(group => group !== 'front' || type?.cabinet) ?? false;
+    return { ...super.capabilities, typed, finishable };
+  }
 
   /** A boxing on its wall (not its own, which goes with it): centred on it, flush with its ends, or beside it. */
   protected override extraTargets(room: Room): PieceTarget[] {

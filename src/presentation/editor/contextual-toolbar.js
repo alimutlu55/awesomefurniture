@@ -1,11 +1,11 @@
-import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fixtureMoreActions, furnishingMoreActions, fieldActions,
+import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, installationMoreActions, roomPieceMoreActions, fieldActions,
     makeViewActions, leafCountActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
 /** Reusable selection toolbar. Command execution and selection stay with its host. `autoDesign` is the Auto design
  * button: it waits hidden among the defaults and the Auto design action presses it. `state`, when given, says what a tool
  * shows now (`label`, e.g. "Hinged left") and which of a menu's choices is the current one (`checked`). */
-export function createContextualToolbar({ document, root, app, undo, redo, getSelection, execute, replacements, controls, lifetime, autoDesign, state }) {
+export function createContextualToolbar({ document, root, app, undo, redo, getSelection, getRoomPiece, execute, replacements, controls, lifetime, autoDesign, state }) {
     const defaults = document.createElement('div');
     defaults.className = 'contextual-defaults';
     defaults.append(...root.childNodes);
@@ -49,10 +49,11 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders'),
         'view-iso':icon('make'),'view-front':icon('front'),'view-side':icon('side'),'view-top':icon('top'),'look-lines':icon('lines'),'look-material':icon('material'),
         'look-xray':icon('xray'),'make-apart':icon('apart'),'make-open':icon('open'),'make-numbers':icon('numbers'),'open-doors':icon('open')};
-    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),installation:fixtureMoreActions,
-        item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions,'room-furnishing':furnishingMoreActions};
+    const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),installation:installationMoreActions,
+        item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
-    const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
+    const menuOf = (key, selection, capabilities) => key === 'more'
+        ? capabilities ? roomPieceMoreActions(capabilities) : moreActions[selection] ?? wardrobeMoreActions
         : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : key === 'make-view' ? makeViewActions
         : key === 'leaf-leaves' ? leafCountActions : undefined;
     const opensMenu = key => key === 'more' || key === 'interior' || key === 'replace' || key === 'make-view' || key === 'leaf-leaves';
@@ -123,16 +124,18 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         if (text && now && text.textContent !== now) { text.textContent = now; b.setAttribute('aria-label', now); }
     });
     const render = () => {
-        const selection = getSelection();
-        if (selection === context) { sync(); return; }
-        context = selection;
+        const selection = getSelection(), capabilities = getRoomPiece?.()?.capabilities;
+        const next = selection + JSON.stringify(capabilities);
+        if (next === context) { sync(); return; }
+        context = next;
+        const actions = contextualActions(selection, capabilities);
         close();
         root.dataset.context = selection;
-        root.style.setProperty('--contextual-action-count', String(contextualActions(selection).length));
+        root.style.setProperty('--contextual-action-count', String(actions.length));
         root.setAttribute('aria-label', selection === 'none' ? 'Furniture' : selection + ' editing actions');
         if (autoDesign && row.contains(autoDesign)) defaults.append(autoDesign);
         // Nothing selected: the defaults (the furniture to choose, More) show instead of a row.
-        row.replaceChildren(...(selection === 'none' ? [] : contextualActions(selection)).filter(([key]) => !['undo','redo'].includes(key)).map(([key,label,name]) => {
+        row.replaceChildren(...(selection === 'none' ? [] : actions).filter(([key]) => !['undo','redo'].includes(key)).map(([key,label,name]) => {
             const b = document.createElement('button');
             b.type = 'button'; b.className = 'tb'; b.dataset.action = key; b.dataset.label = label;
             b.setAttribute('aria-label', name ?? label);
@@ -140,7 +143,7 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
             b.innerHTML = icons[key] + '<span>' + label + '</span>';
             if (opensMenu(key)) {b.setAttribute('aria-haspopup','menu'); b.setAttribute('aria-expanded','false');}
             if (fieldActions.includes(key)) {b.setAttribute('aria-haspopup','dialog'); b.setAttribute('aria-expanded','false');}
-            b.onclick = () => key === 'auto' && autoDesign ? (close(), autoDesign.click()) : opensMenu(key) ? showMenu(menuOf(key, selection),b)
+            b.onclick = () => key === 'auto' && autoDesign ? (close(), autoDesign.click()) : opensMenu(key) ? showMenu(menuOf(key, selection, capabilities),b)
                 : fieldActions.includes(key) ? (menu.hidden || menuTrigger !== b ? showControls(key,label,b) : close()) : (close(),execute(key));
             return b;
         }));

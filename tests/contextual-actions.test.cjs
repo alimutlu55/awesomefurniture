@@ -1,10 +1,12 @@
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreActions,furnitureMenus}=require('../src/domain/wardrobe/contextual-actions.js');
+const {contextualActions,wardrobeMoreActions,itemMoreActions,furnitureMoreActions,furnitureMenus,roomPieceMoreActions}=require('../src/domain/wardrobe/contextual-actions.js');
+const {fixturePiece,furnishingPiece}=require('../src/domain/pieces/pieces');
+const toilet=fixturePiece({id:'f1',kind:'toilet',type:'wall-hung'}).capabilities;
 // Auto design is available for wardrobes, but not kitchen cabinets.
 const FURNITURE_TOOLS=['add-item','resize','make','more'];
 for(const [selection,expected] of [['none',['add','more']],['studio',['new']],['room-fixture',['fixture-type','fixture-size','fixture-finish','more']],['wardrobe',['auto',...FURNITURE_TOOLS]],['kitchen',FURNITURE_TOOLS],['item',['replace','resize','duplicate','remove','more']],['divider',['resize','duplicate','remove']]]) {
- test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection).map(([key])=>key),[...expected,'undo','redo']));
+ test(selection+' exposes its editing commands with persistent history',()=>assert.deepEqual(contextualActions(selection,selection==='room-fixture'?toilet:undefined).map(([key])=>key),[...expected,'undo','redo']));
 }
 test('Make holds the toolbar while it is open: Done first, then its own tools; View lists the views, looks, opening the doors and part numbers',()=>{
  const {makeViewActions}=require('../src/domain/wardrobe/contextual-actions.js');
@@ -31,7 +33,7 @@ test('a selected wall offers Add, Size, Paint/Finish directly with Split and Rem
 
 test('every editable selection has exactly one Size entry and no separate Shape entry',()=>{
  for(const selection of ['wardrobe','kitchen','installation','fixture','item','divider','wall','ceiling','opening','room-fixture']) {
-  const actions=contextualActions(selection);
+  const actions=contextualActions(selection,selection==='room-fixture'?toilet:undefined);
   assert.equal(actions.filter(([,label])=>label==='Size').length,1,selection);
   assert.ok(!actions.some(([,label])=>label==='Shape'),selection);
  }
@@ -43,4 +45,15 @@ test('a chosen door leaf offers its hinge side, the leaves in its opening and th
  assert.ok(fieldActions.includes('leaf-facts'),'Details opens the door\'s facts in the toolbar\'s own popover');
  assert.deepEqual(leafCountActions.map(([key])=>key),Array.from({length:MAX_LEAVES},(_,n)=>'leaves-'+(n+1)));
  assert.deepEqual(leafCountActions.map(([,label])=>label),['1 door','2 doors']);
+});
+
+test('Studio pieces expose exactly the tools their capabilities support',()=>{
+ const bed=furnishingPiece({id:'p1',kind:'bed'}).capabilities;
+ const armchair=furnishingPiece({id:'p2',kind:'armchair'}).capabilities;
+ const keys=actions=>actions.map(([key])=>key);
+ assert.deepEqual(keys(contextualActions('room-furnishing',bed)),['furnishing-type','fixture-size','fixture-finish','more','undo','redo']);
+ assert.deepEqual(keys(contextualActions('room-furnishing',armchair)),['fixture-size','fixture-finish','more','undo','redo']);
+ assert.deepEqual(keys(roomPieceMoreActions(bed)),['turn','duplicate','remove']);
+ assert.deepEqual(keys(roomPieceMoreActions(toilet)),['duplicate','remove']);
+ assert.deepEqual(keys(roomPieceMoreActions({...armchair,duplicable:false})),['turn','remove']);
 });
