@@ -127,6 +127,11 @@
 .sp2d-fixture{cursor:pointer;fill:#fff;stroke:#78716c;stroke-width:1.2}
 .sp2d-fixture.selected{stroke:#0284c7;stroke-width:2}
 .sp2d-fixture ellipse{fill:#f5f5f4}
+/* Furnishings (beds, rugs): footprints with their plan symbol, under the wardrobes; the selected one in blue. */
+.sp2d-furnishing{cursor:grab;fill:#fbfaf8;stroke:#a8a29e;stroke-width:1}
+.sp2d-furnishing line,.sp2d-furnishing circle{fill:none}
+.sp2d-furnishing .sp2d-rug{fill:#f3eee6;stroke-dasharray:4 3}
+.sp2d-furnishing.selected{stroke:#0284c7;stroke-width:1.8}
 .sp2d-rotate{cursor:grab;fill:#0369a1;outline:none}
 .sp2d-rotate-disc{fill:#fff;stroke:#0284c7;stroke-width:1.5}
 .sp2d-rotate:focus-visible .sp2d-rotate-disc{stroke:#1c1917;stroke-width:3}

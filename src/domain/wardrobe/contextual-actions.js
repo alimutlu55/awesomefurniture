@@ -35,6 +35,8 @@ const actions = {
     ceiling: [['ceiling-size', 'Size'], ['flip', 'Flip'], ['remove', 'Remove']],
     // A toilet or basin: how it is fitted (with its boxing), its size, its finishes; More copies or removes it.
     'room-fixture': [['fixture-type', 'Type', 'How it is fitted'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
+    // A bed, a rug or other loose furniture in the room: what size it is, its sizes, its fabric and wood; More turns, copies or removes it.
+    'room-furnishing': [['furnishing-type', 'Type', 'Its size'], ['fixture-size', 'Size'], ['fixture-finish', 'Finish'], ['more', 'More']],
 };
 /** The menus of each kind of furniture's tools, by its furniture kind. */
 export const furnitureMenus = Object.fromEntries(FURNITURE.map(m => [m.key, menusOf()]));
@@ -44,6 +46,7 @@ export const wardrobeMoreActions = furnitureMoreActions.wardrobe;
 export const studioMoreActions = [];
 export const wallMoreActions = [['split', 'Split'], ['remove', 'Remove wall']];
 export const fixtureMoreActions = [['duplicate', 'Duplicate'], ['remove', 'Remove']];
+export const furnishingMoreActions = [['turn', 'Turn 90°'], ['duplicate', 'Duplicate'], ['remove', 'Remove']];
 export const itemMoreActions = [['stores', 'Stores']];
 /** A chosen leaf's Doors menu: its opening hung with one door up to MAX_LEAVES side by side. */
 export const leafCountActions = Array.from({ length: MAX_LEAVES }, (_, n) => ['leaves-' + (n + 1), n ? n + 1 + ' doors' : '1 door']);

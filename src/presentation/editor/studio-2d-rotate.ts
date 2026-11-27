@@ -1,8 +1,10 @@
 import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { createTransform, type Point2D, type ViewportTransform } from './studio-2d-canvas';
 
+/** What turns: a wardrobe, or anything shaped like one for the handle (a bed). */
+type Turning = Pick<EditorCabinet, 'id' | 'x' | 'z' | 'angle'> & { readonly state: { readonly d: number } };
 interface RotationPorts {
-  cabinet(): EditorCabinet | undefined;
+  cabinet(): Turning | undefined;
   transform(): ViewportTransform;
   snapshot(): string;
   checkpoint(snapshot: string): void;
@@ -11,7 +13,7 @@ interface RotationPorts {
   settleCabinet(id: number): string | null | undefined;
   refresh(): void;
 }
-export function rotationHandle(c: EditorCabinet, t: ViewportTransform, turning = false): string {
+export function rotationHandle(c: Turning, t: ViewportTransform, turning = false): string {
   const a = c.angle * Math.PI / 180, distance = c.state.d / 2 + 36 / t.zoom;
   const p = createTransform(t).toScreen({ x: c.x - Math.sin(a) * distance, z: c.z - Math.cos(a) * distance });
   return `<g class="sp2d-rotate" data-rotate-id="${c.id}" role="button" tabindex="0" aria-label="Turn furniture. Drag or press R">

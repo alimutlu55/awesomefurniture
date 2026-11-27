@@ -247,7 +247,9 @@ export function removeOpening(studio: Studio, id: string): Studio | null {
 
 /** Moves the whole room. Placing a built-in studio uses this; it stays a built-in. */
 export function translateStudio(studio: Studio, dx: number, dz: number): Studio {
-  return { ...studio, corners: studio.corners.map(c => ({ ...c, x: round(c.x + dx), z: round(c.z + dz) })) };
+  return { ...studio, corners: studio.corners.map(c => ({ ...c, x: round(c.x + dx), z: round(c.z + dz) })),
+    // Furnishings stand on the floor, not on a wall: they go with it.
+    ...(studio.furnishings ? { furnishings: studio.furnishings.map(f => ({ ...f, x: round(f.x + dx), z: round(f.z + dz) })) } : {}) };
 }
 
 /** Confirms (or clears) a room door's handing without changing its position or size. */

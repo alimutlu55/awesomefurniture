@@ -3,7 +3,7 @@ import { translateStudio } from './studio-edit';
 
 /** Copies a room with fresh identities, preserving every wall attachment. */
 export function mergeStudioRoom(existing: Studio, room: Studio): Studio {
-  const used: { id: string }[] = [...existing.corners, ...existing.walls, ...existing.openings, ...existing.ceilings ?? [], ...existing.fixtures ?? []];
+  const used: { id: string }[] = [...existing.corners, ...existing.walls, ...existing.openings, ...existing.ceilings ?? [], ...existing.fixtures ?? [], ...existing.furnishings ?? []];
   const ids = new Map<string, string>();
   const rename = (prefix: string, list: readonly { id: string }[]) => {
     for (const item of list) { const id = nextId(prefix, used); used.push({ id }); ids.set(item.id, id); }

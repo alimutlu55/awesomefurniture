@@ -3,6 +3,7 @@ import type { Studio } from './studio';
 import { ceilingFrame } from './studio-ceiling';
 import { ceilingLowerProfile, sectionLowerProfile } from './surface-boundary';
 import { fixtureObstacles } from './fixtures/fixture-place';
+import { furnishingObstacles } from './furnishings/furnishing-place';
 
 /** A solid the collision rules keep wardrobes out of, in the same box form as a wardrobe:
  * centre x/z, floor height y, angle in degrees, and width (along), depth (across), height. */
@@ -13,10 +14,11 @@ export interface Obstacle {
 }
 
 /** Every wall of the room as an obstacle, every part of a shape that stands on the floor (a pillar, a boxing, a stair
- * reaching down to it), and every fixture (a toilet, a basin). Doors and windows do not let a wardrobe through. */
+ * reaching down to it), every fixture (a toilet, a basin) and every furnishing that stands up (a bed, a desk; not a rug).
+ * Doors and windows do not let a wardrobe through. */
 export function studioObstacles(studio: Studio | undefined): Obstacle[] {
   if (!studio) return [];
-  return [...wallObstacles(studio), ...groundedShapes(studio), ...fixtureObstacles(studio)];
+  return [...wallObstacles(studio), ...groundedShapes(studio), ...fixtureObstacles(studio), ...furnishingObstacles(studio)];
 }
 
 /** Every wall as a solid box. */

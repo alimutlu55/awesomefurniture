@@ -1,6 +1,7 @@
 import { sidePanelClearance } from '../../domain/kitchen/panel-clearance';
 import type { EditorCabinet, EditorScene } from '../projects/editor-scene';
 import { smallestMove, type AlignTarget } from '../../domain/geometry/alignment';
+import { furnishingBoxes } from '../../domain/studio/furnishings/furnishing-place';
 import { alignments, cornerMoves, gapsAround, nearerWallEnds, wallEndsAround, type GapSide, type PlacedBox } from '../../domain/studio/scene-gaps';
 
 type Collision = { cabinetCollides(cabinet: EditorCabinet): boolean };
@@ -11,7 +12,8 @@ export const FILL_REACH = 15;
 /** The gaps on the given sides of a wardrobe in a scene, and what it lines up with. With `wallEnds`, a side reads
  * to where the wall behind stops (its end, a doorway) when that comes first: for the eye, never for fillers or snaps. */
 export function measureAround(scene: EditorScene, cabinet: EditorCabinet, sides: readonly GapSide[], { wallEnds = false } = {}) {
-  const all = scene.wardrobes.map(box), found = gapsAround(box(cabinet), all, scene.studio, sides);
+  // Gaps read to beds and other furnishings too (the room in front of a wardrobe); alignment is with wardrobes only.
+  const all = scene.wardrobes.map(box), found = gapsAround(box(cabinet), [...all, ...furnishingBoxes(scene.studio)], scene.studio, sides);
   const raw = wallEnds ? nearerWallEnds(found, wallEndsAround(box(cabinet), scene.studio, sides)) : found;
   const gaps = raw.map(g => {
     if (g.side !== 'left' && g.side !== 'right' || g.target === 'wall-end') return g;

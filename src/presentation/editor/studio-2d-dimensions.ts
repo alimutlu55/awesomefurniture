@@ -3,6 +3,7 @@ import type { EditorCabinet } from '../../application/projects/editor-scene';
 import { wallFace, wallLine, type Studio } from '../../domain/studio/studio';
 import { fixtureObstacles } from '../../domain/studio/fixtures/fixture-place';
 import { gapsAround, type PlacedBox } from '../../domain/studio/scene-gaps';
+import { furnishingBoxes, isFlat, steadyGap } from '../../domain/studio/furnishings/furnishing-place';
 import type { RoomSelection } from '../viewport/studio-renderer';
 import type { Point2D } from './studio-2d-canvas';
 import { lengthWithUnit } from './length-unit-state';
@@ -17,7 +18,7 @@ export function fixtureBoxes(studio: Studio | null): PlacedBox[] {
 
 export function selectedDimensions(studio: Studio | null, wardrobes: readonly EditorCabinet[], selection: RoomSelection, active: number | null): PlanDimension[] {
   const out: PlanDimension[] = [];
-  const boxes = wardrobes.map(cabinetBox), fixtures = fixtureBoxes(studio);
+  const boxes = wardrobes.map(cabinetBox), fixtures = fixtureBoxes(studio), furnishings = furnishingBoxes(studio ?? undefined);
   const items = studio ? studioWallItems(studio, boxes) : [];
   const selectedItem = items.find(item => selection ? item.kind === selection.kind && item.id === selection.id : item.kind === 'furniture' && item.id === active);
   const wall = studio?.walls.find(w => w.id === (selectedItem?.wall ?? (selection?.kind === 'wall' ? selection.id : null)));
@@ -35,15 +36,21 @@ export function selectedDimensions(studio: Studio | null, wardrobes: readonly Ed
       }
     }
   }
+  // Boxes are made for the furnishings that stand up, in their order.
+  const standing = (studio?.furnishings ?? []).filter(f => !isFlat(f));
+  const furnishing = selection?.kind === 'furnishing' ? standing.find(f => f.id === selection.id) : undefined;
   const box = selection?.kind === 'fixture' ? fixtures[(studio?.fixtures ?? []).findIndex(f => f.id === selection.id)]
+    : selection?.kind === 'furnishing' ? furnishings[standing.findIndex(f => f.id === selection.id)]
     : !selection ? boxes.find(c => c.id === active) : undefined;
-  if (box) for (const g of gapsAround(box, [...boxes, ...fixtures], studio ?? undefined, ['left', 'right', 'back', 'front'])) {
+  if (box) for (const g of gapsAround(box, [...boxes, ...fixtures, ...furnishings], studio ?? undefined, ['left', 'right', 'back', 'front'])) {
     if (g.distance < .1) continue;
     if (g.side === 'left' || g.side === 'right') {
       const at = out.findIndex(d => d.side === g.side && !d.accent && Math.abs(Math.hypot(d.b.x - d.a.x, d.b.z - d.a.z) - g.distance) < .1);
       if (at >= 0) out.splice(at, 1);
     }
-    out.push({ id: `clearance-${g.side}`, a: g.from, b: g.to, offset: 0, text: lengthWithUnit(g.distance), accent: true, priority: 2 });
+    // A furnishing's gaps start from the middle of each side, so they slide with it instead of jumping while it is dragged.
+    const line = furnishing ? steadyGap(furnishing, g) : null;
+    out.push({ id: `clearance-${g.side}`, a: line?.from ?? g.from, b: line?.to ?? g.to, offset: 0, text: lengthWithUnit(g.distance), accent: true, priority: 2 });
   }
   return out;
 }

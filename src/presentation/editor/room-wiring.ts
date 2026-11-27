@@ -3,6 +3,8 @@ import { wallFace, wallLine } from '../../domain/studio/studio';
 import { openingNoun, type OpeningKind } from '../../domain/studio/wall-utilities';
 import { createStudioEditor } from './studio-editor';
 import { createFixtureEditor } from './fixture-editor';
+import { createFurnishingEditor } from './furnishing-editor';
+import { createFurnishingPanel } from './furnishing-panel';
 import { createStudioFields } from './studio-fields';
 import { createStudioResizePanel } from './studio-resize-panel';
 import { createStudioPaintPanel } from './studio-paint-panel';
@@ -11,6 +13,7 @@ import { createSurfaceShapeEditor } from './surface-shape-editor';
 import { addCeiling } from '../../domain/studio/studio-ceiling';
 import { surfaceProfile } from '../../domain/studio/surface-profile';
 import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
+import { furnishingAxes } from '../../domain/studio/furnishings/furnishing-place';
 import type { StudioEditorPorts } from './studio-editor.ports';
 
 type Listenable = { addEventListener(event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void };
@@ -18,7 +21,8 @@ interface RoomWiringPorts {
     readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
     readonly model: StudioEditorPorts['model'];
     readonly sceneCommands: StudioEditorPorts['sceneCommands'] & import('./fixture-editor').FixtureEditorPorts['sceneCommands']
-        & Parameters<typeof createFixturePanel>[0]['sceneCommands']
+        & Parameters<typeof createFixturePanel>[0]['sceneCommands'] & import('./furnishing-editor').FurnishingEditorPorts['sceneCommands']
+        & Parameters<typeof createFurnishingPanel>[0]['sceneCommands'] & { addStudioFurnishing(kind: string, wallId?: string, near?: number): string | null }
         & Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>, 'resizeWallLength'>;
     readonly history: { checkpoint(snapshot: string): void };
     readonly picking: {
@@ -51,7 +55,8 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     let resizePanel: ReturnType<typeof createStudioResizePanel> | null = null;
     let paintPanel: ReturnType<typeof createStudioPaintPanel> | null = null;
     let fixturePanel: ReturnType<typeof createFixturePanel> | null = null;
-    const refresh = () => { late.inspector().update(true); fields?.render(); paintPanel?.render(); fixturePanel?.render(); shape.render(); };
+    let furnishingPanel: ReturnType<typeof createFurnishingPanel> | null = null;
+    const refresh = () => { late.inspector().update(true); fields?.render(); paintPanel?.render(); fixturePanel?.render(); furnishingPanel?.render(); shape.render(); };
     /** The Shape editor: the selected wall or ceiling shape face on, in the room panel. */
     const shape = createSurfaceShapeEditor({ document: dom.document as Document, model, sceneCommands, history, listen, callbacks: {
         redraw: () => late.rendering().redrawStudio(),
@@ -73,8 +78,9 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 fields?.render();
                 paintPanel?.render();
                 // A fixture's Type or Finish stays open from one fixture to the next, and closes with anything else.
-                if (resizePanel?.showing('fixture') && room.selection()?.kind !== 'fixture') resizePanel.close();
+                if (resizePanel?.showing('fixture') && !['fixture', 'furnishing'].includes(room.selection()?.kind ?? '')) resizePanel.close();
                 fixturePanel?.render();
+                furnishingPanel?.render();
                 // Size follows the selection, with a drawing for walls and ceilings and fields for other parts.
                 if (resizePanel?.showing('surface-shape') || resizePanel?.showing('resize')) {
                     if (shapeTarget()) openShape(false);
@@ -91,18 +97,20 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     const fixtures = createFixtureEditor({ model, sceneCommands, history, selection: room.selection,
         picking: { screenPoint: p => picking.screenPoint(new THREE.Vector3(p.x, p.y, p.z)) },
         callbacks: { select: next => room.select(next), redraw: () => { late.rendering().redrawStudio(); fields?.render(); }, refresh, histUI: () => late.inspector().histUI() } });
-    const onFixture = () => room.selection()?.kind === 'fixture';
-    /** The room editor and the fixture editor as one: a selected fixture's measures, guides, drags and commands are its own. */
+    const furnishings = createFurnishingEditor({ model, sceneCommands, history, selection: room.selection, picking: { groundPoint: e => picking.groundPoint(e) },
+        callbacks: { select: next => room.select(next), redraw: () => { late.rendering().redrawStudio(); fields?.render(); }, refresh, histUI: () => late.inspector().histUI() } });
+    const onFixture = () => room.selection()?.kind === 'fixture', onFurnishing = () => room.selection()?.kind === 'furnishing';
+    /** The room editor with the fixture and furnishing editors: a selected toilet's or bed's measures, guides, drags and commands are its own. */
     const editor: typeof room = { ...room,
-        measures: () => onFixture() || fixtures.dragging() ? fixtures.measures() : room.measures(),
-        guides: () => fixtures.dragging() ? fixtures.guides() : room.guides(),
-        reason: () => fixtures.reason() ?? room.reason(),
-        dragging: () => fixtures.dragging() || room.dragging(),
-        dragKey: () => fixtures.dragKey() ?? room.dragKey(),
-        move: e => fixtures.dragging() ? fixtures.move(e) : room.move(e),
-        end: cancel => fixtures.dragging() ? fixtures.end(cancel) : room.end(cancel),
-        act: key => { if (!fixtures.act(key)) room.act(key); },
-        editMeasure: m => { if (onFixture()) { if (m.edit) openFields('fixture-size', m.edit); } else room.editMeasure(m); },
+        measures: () => onFurnishing() || furnishings.dragging() ? furnishings.measures() : onFixture() || fixtures.dragging() ? fixtures.measures() : room.measures(),
+        guides: () => furnishings.dragging() ? furnishings.guides() : fixtures.dragging() ? fixtures.guides() : room.guides(),
+        reason: () => furnishings.reason() ?? fixtures.reason() ?? room.reason(),
+        dragging: () => furnishings.dragging() || fixtures.dragging() || room.dragging(),
+        dragKey: () => furnishings.dragKey() ?? fixtures.dragKey() ?? room.dragKey(),
+        move: e => furnishings.dragging() ? furnishings.move(e) : fixtures.dragging() ? fixtures.move(e) : room.move(e),
+        end: cancel => furnishings.dragging() ? furnishings.end(cancel) : fixtures.dragging() ? fixtures.end(cancel) : room.end(cancel),
+        act: key => { if (!furnishings.act(key) && !fixtures.act(key)) room.act(key); },
+        editMeasure: m => { if (onFixture()) { if (m.edit) openFields('fixture-size', m.edit); } else if (!onFurnishing()) room.editMeasure(m); },
     };
     /** Tap to type: opens the toolbar's fields for the selection and puts one in focus. */
     function openFields(action: string, field: string) {
@@ -135,7 +143,12 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         getSelection: editor.selection, editStudio: edit => sceneCommands.editStudio(edit), refresh, listen });
     fixturePanel = createFixturePanel({ document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
         sceneCommands, refresh: () => { refresh(); late.rendering().redrawStudio(); }, listen });
-    resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection, paint: paintPanel, shape, fixture: fixturePanel,
+    furnishingPanel = createFurnishingPanel({ document: dom.document as Document, getStudio: () => model.scene.studio, getSelection: editor.selection,
+        sceneCommands, refresh: () => { refresh(); late.rendering().redrawStudio(); }, listen });
+    // Toilets and beds share the Type and Finish section; each panel draws only for its own selection.
+    const typeAndFinish = { root: dom.document.createElement('div'), show(view: 'fixture-type' | 'fixture-finish') { fixturePanel!.show(view); furnishingPanel!.show(view); } };
+    typeAndFinish.root.append(fixturePanel.root, furnishingPanel.root);
+    resizePanel = createStudioResizePanel({ dom, fields, selection: editor.selection, paint: paintPanel, shape, fixture: typeAndFinish,
         prepare: () => { dom.$('#px').click(); late.camera().camRelease(); }, frame: () => late.camera().frameScene() });
 
     /** Escape leaves the room part; Delete removes it. Other keys are not meant for the wardrobes then. */
@@ -158,6 +171,10 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (k.key === 'Escape') editor.select(null);
         else if (k.key === 'Delete' || k.key === 'Backspace') editor.act('remove');
         else if (onFixture() && (k.key === 'ArrowLeft' || k.key === 'ArrowRight')) fixtures.nudge((k.key === 'ArrowRight' ? 1 : -1) * (k.shiftKey ? 10 : 1));
+        else if (onFurnishing() && k.key.startsWith('Arrow')) {
+            const by = k.shiftKey ? 10 : 1;
+            furnishings.nudge(k.key === 'ArrowRight' ? by : k.key === 'ArrowLeft' ? -by : 0, k.key === 'ArrowDown' ? by : k.key === 'ArrowUp' ? -by : 0);
+        } else if (onFurnishing() && (k.key === 'r' || k.key === 'R')) furnishings.act('turn');
         else if (!k.key.startsWith('Arrow')) return;
         k.preventDefault();
         k.stopImmediatePropagation();
@@ -169,6 +186,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         if (!room || !s) return;
         if (s.kind === 'wall' || s.kind === 'ceiling') return;
         if (s.kind === 'fixture') { frameFixture(s.id, false); return; }
+        if (s.kind === 'furnishing') return;
         // An opening keeps its own wall-facing view for adjusting its position and exact size.
         const id = room.openings.find(o => o.id === s.id)?.wall, w = room.walls.find(x => x.id === id);
         const line = w && wallLine(room, w), face = w && wallFace(room, w);
@@ -255,6 +273,22 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
         frameFixture(id, true);
     }
 
+    /** A bed, a rug or other furnishing where its kind goes, near the wall in view (or the selected wall); it is selected
+     * and shown from a three-quarter view above its front. */
+    function addFurnishing(kind: string) {
+        const room = model.scene.studio, s = editor.selection(), view = late.viewed();
+        if (!room?.walls.length) { late.report('Add a room first, then furniture in it.'); return; }
+        const own = s?.kind === 'wall' ? s.id : undefined, wallId = own ?? view.placementWall;
+        const id = sceneCommands.addStudioFurnishing(kind, wallId, !own && wallId === view.placementWall ? view.placementAlong : undefined);
+        if (!id) { refresh(); return; }
+        editor.select({ kind: 'furnishing', id });
+        refresh();
+        late.rendering().redrawStudio();
+        // From where the view already looks (the wall in view), from high enough to see it over the wardrobes.
+        const f = model.scene.studio!.furnishings!.find(x => x.id === id)!, { f: front } = furnishingAxes(f.angle), span = Math.max(220, f.width * 2.2, f.depth * 1.8), c = late.camera().camNow();
+        late.camera().frameBox({ x: f.x + front.x * 30, z: f.z + front.z * 30, w: span, d: span * .8, h: Math.max(120, f.height) }, c.az, Math.max(.75, c.el), 1.1);
+    }
+
     /** Room-level opening, utility and ceiling tools first ask for their supporting wall. */
     function actOnWall(key: string) {
         if (key.startsWith('ceiling:')) { addShape(key.slice(8)); return; }
@@ -270,7 +304,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
     }
 
     return {
-        editor, fields, frameRoom, resizePanel, actOnWall, addFixture, paintPanel, shape, openShape,
+        editor, fields, frameRoom, resizePanel, actOnWall, addFixture, addFurnishing, paintPanel, shape, openShape,
         /** Dragging the selected wall, opening or ceiling by its surface on the canvas. */
         surface: {
             grab(e: PointerEvent, wardrobe: THREE.Intersection | undefined) {
@@ -280,6 +314,7 @@ export function createRoomWiring({ dom, model, sceneCommands, history, picking, 
                 const ghosted = sel.kind === 'wall' || sel.kind === 'opening';
                 if (!hit || (!ghosted && wardrobe && wardrobe.distance < hit.distance)) return false;
                 if (hit.object.userData.studioFixture) return fixtures.grab(e, hit as never, e.target as HTMLElement);
+                if (hit.object.userData.studioFurnishing) return furnishings.grab(e, hit as never, e.target as HTMLElement);
                 return editor.grab(e, hit as never, e.target as HTMLElement);
             },
             move: (e: PointerEvent) => editor.move(e), end: (cancel?: boolean) => editor.end(cancel), dragging: () => editor.dragging(),

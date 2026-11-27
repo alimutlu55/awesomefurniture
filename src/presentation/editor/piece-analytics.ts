@@ -23,6 +23,7 @@ const COUNTED: Readonly<Record<string, Counter>> = {
   addStudioOpening: room('opening_added'),
   addStudioCeiling: room('ceiling_shape'),
   addStudioFixture: room('fixture_added'),
+  addStudioFurnishing: room('furnishing_added'),
 };
 
 /**

@@ -8,6 +8,7 @@ import { WALL_FINISHES, wallAppearance } from '../../domain/studio/studio-paint'
 import { isWallUtility, wallUtilitySpec } from '../../domain/studio/wall-utilities';
 import { addWallUtilityView } from './wall-utility-views';
 import { createFixtureViews } from './fixture-views';
+import { createFurnishingViews } from './furnishing-views';
 
 /** Colours of the room (sRGB). Plain, light finishes so the wardrobe stays the subject. */
 const LOOK = Object.freeze({
@@ -27,7 +28,7 @@ const linear = (hex: string) => new THREE.Color(hex).convertSRGBToLinear();
 export interface Footprint { x: number; z: number; angle: number; w: number; d: number }
 
 /** What is selected in the room: drawn with its outline at full height, even while its wall is lowered. */
-export type RoomSelection = { readonly kind: 'wall' | 'opening' | 'ceiling' | 'fixture'; readonly id: string } | null;
+export type RoomSelection = { readonly kind: 'wall' | 'opening' | 'ceiling' | 'fixture' | 'furnishing'; readonly id: string } | null;
 interface WallView { id: string; group: THREE.Group; body: THREE.Group; details: THREE.Group; cap: THREE.Mesh; normal: THREE.Vector3; mid: THREE.Vector3; height: number; lift: number; free: boolean }
 
 /** Draws the studio around the wardrobes. Walls between the camera and the room lower to a short cut
@@ -76,7 +77,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
       ...(ceiling ? { emissive: linear(paint.color), emissiveIntensity: .3 } : {}) });
   };
   const ceilings = createCeilingViews(scene, id => paintMaterial(room?.walls.find(w => w.id === id), true), lineMaterial);
-  const fixtures = createFixtureViews(scene, lineMaterial);
+  const fixtures = createFixtureViews(scene, lineMaterial), furnishings = createFurnishingViews(scene, lineMaterial);
 
   function clear() {
     root.traverse(o => { if (o instanceof THREE.Mesh || o instanceof THREE.LineSegments) o.geometry.dispose(); });
@@ -97,6 +98,7 @@ export function createStudioRenderer(scene: THREE.Scene) {
     clear();
     ceilings.sync(studio);
     fixtures.sync(studio);
+    furnishings.sync(studio);
     if (!studio?.walls.length) return;
     outline = roomOutline(studio) ?? [];
     root.add(floor(studio));
@@ -238,7 +240,8 @@ export function createStudioRenderer(scene: THREE.Scene) {
     if (selected) { selected.parent?.remove(selected); (selected as THREE.LineSegments).geometry.dispose(); selected = null; }
     ceilings.select(selection?.kind === 'ceiling' ? selection.id : null);
     fixtures.select(selection?.kind === 'fixture' ? selection.id : null);
-    if (!selection || !room || selection.kind === 'ceiling' || selection.kind === 'fixture') return;
+    furnishings.select(selection?.kind === 'furnishing' ? selection.id : null);
+    if (!selection || !room || selection.kind === 'ceiling' || selection.kind === 'fixture' || selection.kind === 'furnishing') return;
     const o = selection.kind === 'opening' ? room.openings.find(x => x.id === selection!.id) : undefined;
     const w = room.walls.find(x => x.id === (o ? o.wall : selection!.id)), view = walls.find(v => v.id === w?.id), line = w && wallLine(room, w);
     if (!w || !view || !line) return;
@@ -311,11 +314,12 @@ export function createStudioRenderer(scene: THREE.Scene) {
     /** Changes whenever the room's shadows would: a rebuild, or a wall lowering or rising. */
     shadowKey: () => builds + ':' + walls.map(v => v.lift.toFixed(3)).join(',') + ':' + ceilings.shadowKey(),
     /** Walls, openings and the ceilings on show, for picking with a ray. */
-    pickables: () => [...hits, ...ceilings.pickables(), ...fixtures.pickables()],
+    pickables: () => [...hits, ...ceilings.pickables(), ...fixtures.pickables(), ...furnishings.pickables()],
     dispose: () => {
       clear();
       ceilings.dispose();
       fixtures.dispose();
+      furnishings.dispose();
       scene.remove(guideStrip, root);
       guideStrip.geometry.dispose();
       for (const g of [downlight.trim, downlight.lamp]) g.dispose();

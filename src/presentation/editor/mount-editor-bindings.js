@@ -303,7 +303,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 planner2D.render();
             }
             // A selected toilet or basin has its own tools ('fixture' is a kitchen sink or hob's).
-            if (selectionState.viewMode === 'studio') return selectionState.room?.kind === 'fixture' ? 'room-fixture' : selectionState.room?.kind ?? 'studio';
+            if (selectionState.viewMode === 'studio') return { fixture: 'room-fixture', furnishing: 'room-furnishing' }[selectionState.room?.kind] ?? selectionState.room?.kind ?? 'studio';
             if (!selectionState.focusOn || !model.scene.wardrobes.length) return 'none';
             const state = model.activeCabinet().state;
             return leafContext(selectionState, model) ?? (state.divider >= 0 ? 'divider' : state.item >= 0 ? 'item' : installationKind(state) ? 'installation' : isFixture(state) ? 'fixture' : furnitureKind(state));
@@ -331,7 +331,7 @@ export function mountEditorBindings({ dom, picking, camera, rendering, interacti
                 leftTitle.textContent = 'Paint & Finish';
                 return;
             }
-            if (key === 'fixture-type' || key === 'fixture-finish') { leftTitle.textContent = key === 'fixture-type' ? 'Type' : 'Finish'; room.resizePanel.openFixture(key); return; }
+            if (['fixture-type', 'fixture-finish', 'furnishing-type'].includes(key)) { leftTitle.textContent = key === 'fixture-finish' ? 'Finish' : 'Type'; room.resizePanel.openFixture(key === 'fixture-finish' ? key : 'fixture-type'); return; }
             // Nothing selected in Studio: Add opens the room's parts, a tab each (walls, ceiling, fixtures).
             if (key === 'new' && selectionState.viewMode === 'studio' && !selectionState.room) {
                 if ($('#pop2').classList.contains('show') && $('#pop2').dataset.addContext === 'studio') { inspector.hidePop(); return; }

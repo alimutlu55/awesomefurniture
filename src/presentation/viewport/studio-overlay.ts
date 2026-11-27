@@ -117,7 +117,7 @@ export function createStudioOverlay({ document, labels, scene, camera, canvas, r
         for (const m of editor.measures()) {
             const a = V(m.a), b = V(m.b), el = label(a.clone().add(b).multiplyScalar(.5), m.text, 'lbl dim space-ruler item-dimension shape-measure room-label' + (m.tone ? ' room-warn' : ''));
             const selected = editor.selection();
-            if (m.edit && selected) sceneMeasurementBadge(el, { kind: 'studio', selection: selected.kind, id: selected.id, field: m.edit },
+            if (m.edit && selected && selected.kind !== 'furnishing') sceneMeasurementBadge(el, { kind: 'studio', selection: selected.kind, id: selected.id, field: m.edit },
                 selected.kind === 'ceiling' ? 'Ceiling height' : selected.kind === 'opening' ? 'Opening ' + m.edit
                     : selected.kind === 'fixture' ? (m.edit === 'left' ? 'From left end' : m.edit === 'right' ? 'From right end' : 'Size') : 'Wall length',
                 Math.hypot(m.b.x - m.a.x, m.b.y - m.a.y, m.b.z - m.a.z), m.axis === 'height' ? 'vertical' : 'horizontal');

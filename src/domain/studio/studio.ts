@@ -103,6 +103,22 @@ export interface StudioFixture {
   readonly tap?: 'deck' | 'wall' | undefined;
 }
 
+/** A bed, a rug or other loose furniture (furnishings/furnishing-kinds.ts) standing on the floor: `x`/`z` is its middle
+ * and at angle 0 its back is at -z, as a wardrobe's. Sizes in centimetres; finishes absent are the first of each group. */
+export interface StudioFurnishing {
+  readonly id: string;
+  readonly kind: string;
+  readonly type: string;
+  readonly x: number;
+  readonly z: number;
+  readonly angle: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly height: number;
+  readonly fabric?: string | undefined;
+  readonly wood?: string | undefined;
+}
+
 export interface Studio {
   readonly template: StudioTemplateId;
   readonly corners: readonly StudioCorner[];
@@ -112,6 +128,8 @@ export interface Studio {
   readonly ceilings?: readonly StudioCeiling[] | undefined;
   /** Absent in rooms without fixtures, so older projects stay as they were saved. */
   readonly fixtures?: readonly StudioFixture[] | undefined;
+  /** Absent in rooms without furnishings, so older projects stay as they were saved. */
+  readonly furnishings?: readonly StudioFurnishing[] | undefined;
 }
 
 /** Limits a person can build within. Centimetres. */

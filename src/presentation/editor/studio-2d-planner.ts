@@ -2,6 +2,8 @@ import { renderUtilities } from './studio-2d-utilities';
 import { overlayInsets } from './studio-2d-overlays';
 import { renderFixtures } from './studio-2d-fixtures';
 import { createPlanRotation, rotationHandle } from './studio-2d-rotate';
+import { createPlanFurnishings, renderFurnishings } from './studio-2d-furnishings';
+import { moveFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
 import { STUDIO_LIMITS, studioBounds, wallLine } from '../../domain/studio/studio';
 import { splitWall } from '../../domain/studio/studio-edit';
 import { detectRooms, stepStudioWall } from '../../domain/studio/studio-plan';
@@ -14,7 +16,8 @@ export interface Studio2DPlannerPorts {
   readonly dom: ReturnType<typeof import('./editor-dom.js').createEditorDom>;
   readonly model: { scene: EditorScene; snapshot(): string; restore(s: string): void };
   readonly sceneCommands: Pick<ReturnType<typeof import('../../application/commands/scene-commands').createSceneCommands>,
-    'editStudio' | 'standingAgainst' | 'carryWardrobes' | 'previewTranslation' | 'previewRotation' | 'restorePose' | 'settleCabinet' | 'studioProblem' | 'followCeilings'>;
+    'editStudio' | 'standingAgainst' | 'carryWardrobes' | 'previewTranslation' | 'previewRotation' | 'restorePose' | 'settleCabinet' | 'studioProblem' | 'followCeilings'
+    | 'furnishingProblem' | 'editFurnishing'>;
   readonly history: { checkpoint(snapshot: string): void };
   readonly selectionState: {
     viewMode?: 'studio' | 'furniture';
@@ -46,7 +49,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
         <g id="sp2d-rooms"></g>
         <g id="sp2d-walls"></g>
         <g id="sp2d-openings"></g>
-        <g id="sp2d-fixtures"></g><g id="sp2d-furniture"></g><g id="sp2d-utilities"></g>
+        <g id="sp2d-furnishings"></g><g id="sp2d-fixtures"></g><g id="sp2d-furniture"></g><g id="sp2d-utilities"></g>
         <g id="sp2d-handles"></g>
         <g id="sp2d-guides"></g>
         <g id="sp2d-draw-preview"></g>
@@ -63,7 +66,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   const roomsGroup = svg.querySelector<SVGGElement>('#sp2d-rooms')!;
   const wallsGroup = svg.querySelector<SVGGElement>('#sp2d-walls')!;
   const openingsGroup = svg.querySelector<SVGGElement>('#sp2d-openings')!;
-  const fixturesGroup = svg.querySelector<SVGGElement>('#sp2d-fixtures')!;
+  const fixturesGroup = svg.querySelector<SVGGElement>('#sp2d-fixtures')!, furnishingsGroup = svg.querySelector<SVGGElement>('#sp2d-furnishings')!;
   const rotationGroup = svg.querySelector<SVGGElement>('#sp2d-rotation')!;
   const utilitiesGroup = svg.querySelector<SVGGElement>('#sp2d-utilities')!;
   const furnGroup = svg.querySelector<SVGGElement>('#sp2d-furniture')!;
@@ -109,6 +112,17 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     restorePose: (id, from) => sceneCommands.restorePose(id, from), settleCabinet: id => sceneCommands.settleCabinet(id),
     refresh: () => { callbacks.selectionChanged(); render(); },
   });
+  // Beds and other furnishings: dragged by their footprint, turned by the same handle as a wardrobe.
+  const planFurnishings = createPlanFurnishings({ model, sceneCommands, history, transform: () => transform, selection: () => selectionState.room ?? null,
+    select: s => { callbacks.clearFurnitureFocus(); selectionState.room = s; callbacks.selectionChanged(); }, refresh: () => { callbacks.selectionChanged(); render(); } });
+  const furnishingOf = () => { const s = selectionState.room; return s?.kind === 'furnishing' ? model.scene.studio?.furnishings?.find(f => f.id === s.id) : undefined; };
+  const turningFurnishing = () => { const f = furnishingOf(); return f && { id: -1, x: f.x, z: f.z, angle: f.angle, state: { d: f.depth } }; };
+  const pose = (fn: (id: string) => void) => { const f = furnishingOf(); if (f) fn(f.id); };
+  const furnishingRotation = createPlanRotation({ cabinet: turningFurnishing, transform: () => transform, snapshot: () => model.snapshot(), checkpoint: s => history.checkpoint(s),
+    previewRotation: (_id, angle, from) => { let ok = false; pose(id => { ok = sceneCommands.editFurnishing(id, r => moveFurnishing(r, id, { ...from, angle }), false, true); }); return ok; },
+    restorePose: (_id, at) => pose(id => sceneCommands.editFurnishing(id, r => moveFurnishing(r, id, at), false, true)), settleCabinet: () => null,
+    refresh: () => { callbacks.selectionChanged(); render(); } });
+  const turners = [rotation, furnishingRotation];
   function updateSize() {
     const rect = svg.getBoundingClientRect();
     if (rect.width > 0 && rect.height > 0) {
@@ -173,6 +187,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       lastStudioSnapshot = studioSnap;
       lastSelectionKey = selKey;
       fixturesGroup.innerHTML = studio ? renderFixtures(studio, sel) : '';
+      furnishingsGroup.innerHTML = studio ? renderFurnishings(studio, sel) : '';
       roomsGroup.innerHTML = studio ? renderRooms(studio) : '';
       wallsGroup.innerHTML = studio ? renderWalls(studio, sel) : '';
       openingsGroup.innerHTML = studio ? renderOpenings(studio, sel) : '';
@@ -189,9 +204,10 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
     }
     utilitiesGroup.innerHTML = renderUtilities(studio ?? null, sel, transform.zoom);
     const piece = activePiece();
-    rotationGroup.innerHTML = piece ? rotationHandle(piece, transform, rotation.active()) : '';
+    const turningBed = turningFurnishing();
+    rotationGroup.innerHTML = piece ? rotationHandle(piece, transform, rotation.active()) : turningBed ? rotationHandle(turningBed, transform, furnishingRotation.active()) : '';
     // Dynamic guides during drag
-    const guides = gestures.getGuides();
+    const guides = planFurnishings.active() ? planFurnishings.guides() : gestures.getGuides();
     if (guides.length) {
       guidesGroup.innerHTML = guides.map(g => `
         <line x1="${g.a.x}" y1="${g.a.z}" x2="${g.b.x}" y2="${g.b.z}" class="sp2d-guide-line" vector-effect="non-scaling-stroke"/>
@@ -255,17 +271,20 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
   }
   listen(svg, 'pointerdown', (e: Event) => {
     const pointer = e as PointerEvent;
-    if (rotation.down(pointer, svg) || gestures.onPointerDown(pointer, svg)) svg.setPointerCapture(pointer.pointerId);
+    if (turners.some(r => r.down(pointer, svg)) || planFurnishings.down(pointer, svg) || gestures.onPointerDown(pointer, svg)) svg.setPointerCapture(pointer.pointerId);
   });
-  listen(svg, 'pointermove', (e: Event) => rotation.active() ? rotation.move(e as PointerEvent, svg) : gestures.onPointerMove(e as PointerEvent, svg));
+  const turner = () => turners.find(r => r.active());
+  const cancelAll = () => { for (const r of turners) r.finish(true); planFurnishings.finish(true); };
+  listen(svg, 'pointermove', (e: Event) => turner() ? turner()!.move(e as PointerEvent, svg)
+    : planFurnishings.active() ? planFurnishings.move(e as PointerEvent, svg) : gestures.onPointerMove(e as PointerEvent, svg));
   listen(svg, 'pointerup', (e: Event) => {
-    if (rotation.active()) rotation.finish(); else gestures.onPointerUp(e as PointerEvent);
+    if (turner()) turner()!.finish(); else if (!planFurnishings.finish()) gestures.onPointerUp(e as PointerEvent);
   });
   listen(svg, 'pointercancel', (e: Event) => {
-    rotation.finish(true); gestures.onPointerUp(e as PointerEvent, true);
+    cancelAll(); gestures.onPointerUp(e as PointerEvent, true);
     gestures.clearWallActionTarget();
   });
-  listen(svg, 'lostpointercapture', () => { rotation.finish(true); gestures.onPointerUp(undefined, true); });
+  listen(svg, 'lostpointercapture', () => { cancelAll(); gestures.onPointerUp(undefined, true); });
   listen(svg, 'wheel', (e: Event) => gestures.onWheel(e as WheelEvent, svg), { passive: false });
   listen(svg, 'keydown', (e: Event) => {
     const key = e as KeyboardEvent, handle = (e.target as Element).closest('[data-extend-id]');
@@ -298,7 +317,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       return;
     }
   });
-  listen(window, 'blur', () => { rotation.finish(true); gestures.onPointerUp(undefined, true); });
+  listen(window, 'blur', () => { cancelAll(); gestures.onPointerUp(undefined, true); });
   // Panels and toolbars can resize without a window resize (including animated mobile sheets).
   if (typeof ResizeObserver !== 'undefined') {
     const resize = new ResizeObserver(() => {
@@ -320,7 +339,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       ke.preventDefault(); ke.stopImmediatePropagation(); rotation.quarterTurn();
     }
     else if (ke.key === 'Escape') {
-      if (rotation.active()) { ke.preventDefault(); ke.stopImmediatePropagation(); rotation.finish(true); return; }
+      if (turner() || planFurnishings.active()) { ke.preventDefault(); ke.stopImmediatePropagation(); cancelAll(); return; }
       const editing = gestures.isEditing();
       gestures.onPointerUp(undefined, true); gestures.cancelDrawing(); svg.classList.remove('drawing-wall');
       if (editing) { ke.preventDefault(); ke.stopImmediatePropagation(); }
@@ -349,7 +368,7 @@ export function createStudio2DPlanner({ dom, model, sceneCommands, history, sele
       fitScene();
     },
     hide() {
-      rotation.finish(true);
+      cancelAll();
       gestures.onPointerUp(undefined, true);
       gestures.cancelDrawing();
       svg.classList.remove('drawing-wall');

@@ -10,7 +10,7 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
   paint?: { root: HTMLElement; render(): void };
   /** The Shape editor of a wall or ceiling shape. */
   shape?: { root: HTMLElement; render(): void };
-  /** A fixture's Type and Finish choices. */
+  /** A fixture's or furnishing's Type and Finish choices. */
   fixture?: { root: HTMLElement; show(view: 'fixture-type' | 'fixture-finish'): void };
 }) {
   const panel = dom.$('#left'), app = dom.$('#app');
@@ -68,7 +68,7 @@ export function createStudioResizePanel({ dom, fields, selection, prepare, frame
   }
   /** A fixture's Type or Finish, in the same panel as its Size: beside the room on a desktop, a sheet on a phone. */
   function openFixture(view: 'fixture-type' | 'fixture-finish') {
-    if (selection()?.kind !== 'fixture' || !fixture) return;
+    if (!['fixture', 'furnishing'].includes(selection()?.kind ?? '') || !fixture) return;
     if (!fixtureSection) {
       fixtureSection = dom.document.createElement('section');
       fixtureSection.dataset.wardrobeControls = 'fixture'; fixtureSection.dataset.studioResize = '';

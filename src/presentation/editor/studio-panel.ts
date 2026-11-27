@@ -5,6 +5,8 @@ import { CEILING_SHAPES } from '../../domain/studio/studio-ceiling';
 import { ceilingArt } from './studio-ceiling-panel';
 import { FIXTURES } from '../../domain/studio/fixtures/fixture-kinds';
 import { fixtureCardArt } from './fixture-art';
+import { FURNISHINGS } from '../../domain/studio/furnishings/furnishing-kinds';
+import { furnishingCardArt } from './furnishing-art';
 import { esc } from './editor-format.js';
 import type { RoomSelection } from '../viewport/studio-renderer';
 
@@ -19,6 +21,8 @@ interface StudioPanelPorts {
     chooseCeiling(shape: string): void;
     /** A toilet, a basin or another fixture was chosen: add it to the wall in view (or the selected one). */
     chooseFixture(kind: string): void;
+    /** A bed, a rug or other furnishing was chosen: add it where its kind goes in the room. */
+    chooseFurnishing(kind: string): void;
     /** A wall or opening was added: select it for editing. */
     added(selection: RoomSelection): void;
     refresh(): void;
@@ -64,15 +68,18 @@ export function createStudioPanel({ dom, model, sceneCommands, getSelection, cal
       + CEILING_SHAPES.map(c => `<button type="button" class="room-product" data-product-category="ceilings" data-add-ceiling="${c.id}" hidden title="${esc(c.description)}">`
         + `${ceilingArt(c)}<span>${esc(c.name)}</span></button>`).join('')
       + FIXTURES.map(k => `<button type="button" class="room-product" data-product-category="fixtures" data-add-fixture="${k.key}" hidden title="${esc(k.description)}">`
-        + `${fixtureCardArt(k.key)}<span>${esc(k.name)}</span></button>`).join('');
+        + `${fixtureCardArt(k.key)}<span>${esc(k.name)}</span></button>`).join('')
+      + FURNISHINGS.map(k => `<button type="button" class="room-product" data-product-category="furnishings" data-add-furnishing="${k.key}" hidden title="${esc(k.description)}">`
+        + `${furnishingCardArt(k.key)}<span>${esc(k.name)}</span></button>`).join('');
   };
 
   function bind(listen: (target: EventTarget, type: string, handler: (e: Event) => void) => void) {
     listen(dom.$('#pop2'), 'click', e => {
-      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling],[data-add-fixture]');
+      const button = (e.target as Element).closest<HTMLElement>('[data-studio],[data-add-room],[data-add-ceiling],[data-add-fixture],[data-add-furnishing]');
       if (!button) return;
       if (button.dataset.addCeiling) { callbacks.chooseCeiling(button.dataset.addCeiling); return; }
       if (button.dataset.addFixture) { callbacks.chooseFixture(button.dataset.addFixture); return; }
+      if (button.dataset.addFurnishing) { callbacks.chooseFurnishing(button.dataset.addFurnishing); return; }
       const studio = button.dataset.studio, part = button.dataset.addRoom;
       if (studio) {
         if (sceneCommands.addStudioRoom(studio as never)) callbacks.placed();

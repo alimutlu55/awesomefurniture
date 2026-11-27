@@ -41,14 +41,15 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   const wallOf = (studio: Studio, id: string) => studio.walls.find(w => w.id === id);
   const selectedWall = (studio = room()) => {
     const s = selection();
-    if (!studio || !s) return undefined;
+    if (!studio || !s || s.kind === 'furnishing') return undefined;
     return wallOf(studio, s.kind === 'wall' ? s.id : s.kind === 'ceiling' ? ceilingOf(studio, s.id)?.wall ?? ''
       : s.kind === 'fixture' ? studio.fixtures?.find(f => f.id === s.id)?.wall ?? '' : studio.openings.find(o => o.id === s.id)?.wall ?? '');
   };
   const ceilingOf = (studio: Studio, id: string) => studio.ceilings?.find(c => c.id === id);
   const exists = (studio: Studio, s: NonNullable<RoomSelection>) =>
     s.kind === 'wall' ? !!wallOf(studio, s.id) : s.kind === 'ceiling' ? !!ceilingOf(studio, s.id)
-      : s.kind === 'fixture' ? !!studio.fixtures?.some(f => f.id === s.id) : studio.openings.some(o => o.id === s.id);
+      : s.kind === 'fixture' ? !!studio.fixtures?.some(f => f.id === s.id) : s.kind === 'furnishing' ? !!studio.furnishings?.some(f => f.id === s.id)
+        : studio.openings.some(o => o.id === s.id);
 
   /** Selects a wall or an opening (null clears). A selection that no longer exists clears itself. */
   function select(next: RoomSelection) {
@@ -65,6 +66,7 @@ export function createStudioEditor({ model, sceneCommands, history, picking, sel
   function pick(hit: { object: { userData: Record<string, unknown> } } | undefined) {
     const u = hit?.object.userData;
     if (u?.studioFixture) select({ kind: 'fixture', id: String(u.studioFixture) });
+    else if (u?.studioFurnishing) select({ kind: 'furnishing', id: String(u.studioFurnishing) });
     else if (u?.studioOpening) select({ kind: 'opening', id: String(u.studioOpening) });
     else if (u?.studioCeiling) select({ kind: 'ceiling', id: String(u.studioCeiling) });
     else if (u?.studioWall) select({ kind: 'wall', id: String(u.studioWall) });

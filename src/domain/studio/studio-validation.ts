@@ -6,12 +6,14 @@ import { WALL_FINISHES } from './studio-paint';
 import { isWallUtility, openingLimits, openingNoun, openingsOverlap } from './wall-utilities';
 import { fixtureClashes, fixtureProblems } from './fixtures/fixture-validation';
 import { groundedShapes, wallObstacles } from './studio-obstacles';
+import { furnishingClashes, furnishingProblems } from './furnishings/furnishing-validation';
+import { fixtureObstacles } from './fixtures/fixture-place';
 
 /** Why a studio is not buildable, worded as what to do about it. Empty when it is fine. */
 export function studioProblems(studio: Studio): string[] {
   const problems: string[] = [];
   const ids = new Set<string>();
-  for (const item of [...studio.corners, ...studio.walls, ...studio.openings, ...studio.ceilings ?? [], ...studio.fixtures ?? []]) {
+  for (const item of [...studio.corners, ...studio.walls, ...studio.openings, ...studio.ceilings ?? [], ...studio.fixtures ?? [], ...studio.furnishings ?? []]) {
     if (ids.has(item.id)) problems.push(`Two parts share the id ${item.id}.`);
     ids.add(item.id);
   }
@@ -32,6 +34,8 @@ export function studioProblems(studio: Studio): string[] {
   for (const c of studio.ceilings ?? []) problems.push(...ceilingProblems(studio, c));
   for (const f of studio.fixtures ?? []) problems.push(...fixtureProblems(studio, f));
   if (studio.fixtures?.length) problems.push(...fixtureClashes(studio, wallObstacles(studio), groundedShapes(studio)));
+  for (const f of studio.furnishings ?? []) problems.push(...furnishingProblems(f));
+  if (studio.furnishings?.length) problems.push(...furnishingClashes(studio, wallObstacles(studio), groundedShapes(studio), fixtureObstacles(studio)));
   return [...new Set(problems)];
 }
 

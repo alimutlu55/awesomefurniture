@@ -1,4 +1,4 @@
-import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fixtureMoreActions, fieldActions,
+import { contextualActions, furnitureMenus, wardrobeMoreActions, itemMoreActions, wallMoreActions, studioMoreActions, fixtureMoreActions, furnishingMoreActions, fieldActions,
     makeViewActions, leafCountActions } from '../../domain/wardrobe/contextual-actions.js';
 import { icon, ibIcon } from './editor-format.js';
 const mounted = new WeakMap();
@@ -39,18 +39,18 @@ export function createContextualToolbar({ document, root, app, undo, redo, getSe
         shape:icon('wardrobe'),sections:icon('divider'),more:icon('more'),duplicate:ibIcon('dup'),remove:ibIcon('del'),replace:ibIcon('typ'),
         'wall-size':icon('sliders'),'opening-size':icon('sliders'),split:icon('split'),'wall-paint':icon('material'),door:icon('room-door'),window:icon('room-window'),
         'ceiling-size':icon('sliders'),'ceiling-shape':icon('room-stairs'),'surface-shape':icon('shape-edit'),flip:icon('flip'),
-        'fixture-type':icon('fixture-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make'),
+        'fixture-type':icon('fixture-type'),'furnishing-type':icon('furnishing-type'),'fixture-size':icon('sliders'),'fixture-finish':icon('material'),make:icon('make'),
         'make-done':icon('done'),'make-assembly':icon('apart'),'make-apart':icon('apart'),'make-fronts':icon('doors'),'make-measures':icon('dims'),'make-view':icon('view'),'make-parts':icon('parts'),
         'leaf-hinge':icon('flip'),'leaf-leaves':icon('split'),'leaf-handle':icon('material'),'leaf-facts':icon('doors')};
     const menuIcons = {auto:icon('spark'),'add-item':icon('plus'),new:icon('plus'),
         shape:icon('wardrobe'),sections:icon('divider'),fronts:icon('doors'),material:icon('material'),doors:icon('doors'),duplicate:ibIcon('dup'),reset:icon('reset'),remove:ibIcon('del'),
-        stores:icon('drawer'),replace:ibIcon('typ'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
+        stores:icon('drawer'),replace:ibIcon('typ'),turn:icon('turn'),door:icon('room-door'),window:icon('room-window'),archway:icon('room-archway'),
         water:icon('room-water'),socket:icon('room-socket'),duct:icon('room-duct'),gas:icon('room-gas'),radiator:icon('room-radiator'),switch:icon('room-switch'),
         'add-wall':icon('room-wall'),split:icon('split'),'wall-size':icon('sliders'),
         'view-iso':icon('make'),'view-front':icon('front'),'view-side':icon('side'),'view-top':icon('top'),'look-lines':icon('lines'),'look-material':icon('material'),
         'look-xray':icon('xray'),'make-apart':icon('apart'),'make-open':icon('open'),'make-numbers':icon('numbers'),'open-doors':icon('open')};
     const moreActions = {...Object.fromEntries(Object.entries(furnitureMenus).map(([kind, menus]) => [kind, menus.more])),installation:fixtureMoreActions,
-        item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions};
+        item:itemMoreActions,wall:wallMoreActions,studio:studioMoreActions,'room-fixture':fixtureMoreActions,'room-furnishing':furnishingMoreActions};
     /** The tools that open a menu, and what each lists for the selection. */
     const menuOf = (key, selection) => key === 'more' ? moreActions[selection] ?? wardrobeMoreActions
         : key === 'interior' ? furnitureMenus[selection]?.interior : key === 'replace' ? replacements() : key === 'make-view' ? makeViewActions

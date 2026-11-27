@@ -22,8 +22,8 @@
 /* The free floor in front of a fixture, amber when a person has less than they need to use it. */
 #labels .lbl.room-label.room-warn{background:#b7791f;color:#fff;border-color:#b7791f}
 @media (max-width:900px){
- #toolbar[data-context="room-fixture"] .contextual-defaults{display:none}
- #toolbar[data-context="room-fixture"] .contextual-actions{display:flex}
+ #toolbar[data-context="room-fixture"] .contextual-defaults,#toolbar[data-context="room-furnishing"] .contextual-defaults{display:none}
+ #toolbar[data-context="room-fixture"] .contextual-actions,#toolbar[data-context="room-furnishing"] .contextual-actions{display:flex}
  .fixture-choices{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 @media (max-width:330px){

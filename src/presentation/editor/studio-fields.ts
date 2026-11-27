@@ -16,6 +16,8 @@ import { fixtureKind, fixtureType } from '../../domain/studio/fixtures/fixture-k
 import { fixturePlace } from '../../domain/studio/fixtures/fixture-place';
 import { fixtureFromEnd, setFixtureSize } from '../../domain/studio/fixtures/fixture-edit';
 import { placeFromEnd } from '../../domain/studio/fixtures/fixture-setup';
+import { furnishingKind, furnishingType } from '../../domain/studio/furnishings/furnishing-kinds';
+import { setFurnishingSize, turnFurnishing } from '../../domain/studio/furnishings/furnishing-edit';
 import { alignRoomField } from './room-field-alignment';
 import { AUTO_ALIGN_CM, resolveAlignment } from '../../domain/geometry/alignment';
 
@@ -74,6 +76,14 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
                 { key: 'height', label: k.height.label, value: f.height, min: t.limits.height[0], max: t.limits.height[1], hint: k.height.hint },
                 { key: 'left', label: 'From left end', value: fixtureFromEnd(studio, f, 'left') ?? 0, min: 0, max: face.length },
                 { key: 'right', label: 'From right end', value: fixtureFromEnd(studio, f, 'right') ?? 0, min: 0, max: face.length },
+            ];
+        }
+        if (s.kind === 'furnishing') {
+            const f = studio.furnishings?.find(x => x.id === s.id), k = f && furnishingKind(f.kind), t = f && furnishingType(f.kind, f.type);
+            if (!f || !k || !t) return [];
+            return [
+                ...(['width', 'depth', 'height'] as const).map(key => ({ key, label: k.labels[key], value: f[key], min: t.limits[key][0], max: t.limits[key][1] })),
+                { key: 'angle', label: 'Turn', value: f.angle, min: 0, max: 359, hint: 'Degrees · R turns it a quarter' },
             ];
         }
         if (s.kind === 'wall') {
@@ -169,7 +179,8 @@ export function createStudioFields({ document, getStudio, getSelection, editStud
         if (!s || !Number.isFinite(value)) return;
         const write = preview && resize ? resize.preview : editStudio;
         const update = (edit: (r: Studio, v: number) => Studio | null) => write(r => alignRoomField(r, s, key, value, edit, valid));
-        if (s.kind === 'fixture') update((r, v) => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, v) : setFixtureSize(r, s.id, { [key]: v }));
+        if (s.kind === 'furnishing') write(r => key === 'angle' ? turnFurnishing(r, s.id, value) : setFurnishingSize(r, s.id, { [key]: value }));
+        else if (s.kind === 'fixture') update((r, v) => key === 'left' || key === 'right' ? placeFromEnd(r, s.id, key, v) : setFixtureSize(r, s.id, { [key]: v }));
         else if (key.startsWith('b') && (s.kind === 'wall' || s.kind === 'ceiling')) {
             update((r, v) => setBoundaryControlHeight(r, s.kind === 'wall' ? 'wall' : 'ceiling', s.id, Number(key.slice(1)), v));
         }

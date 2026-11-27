@@ -8,10 +8,10 @@ const ADD_FOLDS = { room: ['.room-add'], studio: ['.room-add'], wall: ['.room-ad
 /** Opens the Add sheet on what can be added to the scene: the room's parts, a new wardrobe or kitchen cabinets, or
  * any furniture.
  * @param {Pick<import('./shell-bindings.ports').BindFurnitureButtonsPorts, 'dom' | 'inspector' | 'shell'>} ports
- * @param {'room' | 'studio' | 'wall' | 'ceilings' | 'fixtures' | 'wardrobe' | 'kitchen' | 'furniture'} context */
+ * @param {'room' | 'studio' | 'wall' | 'ceilings' | 'fixtures' | 'furnishings' | 'wardrobe' | 'kitchen' | 'furniture'} context */
 export function openSceneAdd({ dom, inspector, shell }, context) {
     shell.closeDD();
-    if (context !== 'studio' && context !== 'wall' && context !== 'ceilings' && context !== 'fixtures') inspector.clearFocus();
+    if (context !== 'studio' && context !== 'wall' && context !== 'ceilings' && context !== 'fixtures' && context !== 'furnishings') inspector.clearFocus();
     inspector.showPop(null, '#pop2', context);
     for (const fold of ADD_FOLDS[context] ?? []) /** @type {HTMLDetailsElement} */ (dom.$('#pop2').querySelector(fold)).open = true;
 }

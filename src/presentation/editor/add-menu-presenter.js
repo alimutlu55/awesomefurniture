@@ -16,7 +16,7 @@ import { renderFurnitureCatalog } from './furniture-catalog';
 import { leafCategories } from '../../domain/furniture/furniture-taxonomy';
 import { presetSize } from '../../domain/furniture/piece-presets';
 /** Phone catalogue categories that add to the scene (the room, a wardrobe, kitchen cabinets) rather than into the selected space. */
-const SCENE_CATEGORIES = ['room', 'wall', 'utilities', 'openings', 'ceilings', 'fixtures', ...leafCategories().map(c => c.id)];
+const SCENE_CATEGORIES = ['room', 'wall', 'utilities', 'openings', 'ceilings', 'fixtures', 'furnishings', ...leafCategories().map(c => c.id)];
 /** The Add item panel: suggestion cards for the selected space, the More items list and the phone
  * catalogue with its categories. Cards only render here; their clicks are bound in bindings/add-menu.js.
  * @param {{ $: ReturnType<typeof import('./editor-dom.js').createEditorDom>['$'];
@@ -53,10 +53,10 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
         const autoDesign = furnitureModule(model.activeCabinet().state).autoDesign ? '<button type="button" data-auto-design>'+icon('spark')+'<span>Auto design</span></button>' : '';
         // The wardrobe and kitchen pills serve their own contexts; Add furniture lists every kind as category tiles instead.
         const tab = key => FURNITURE.some(m => m.key === key) ? ' data-furniture-tab' : '';
-        const studioTab = key => ['room', 'ceilings', 'fixtures'].includes(key) ? ' data-studio-tab' : '';
+        const studioTab = key => ['room', 'ceilings', 'fixtures', 'furnishings'].includes(key) ? ' data-studio-tab' : '';
         const wallTab = key => ['utilities', 'openings', 'ceilings', 'fixtures'].includes(key) ? ' data-wall-tab' : '';
         const wallPills = [['utilities', 'Utilities', 'room-water'], ['openings', 'Openings', 'room-door'], ['ceilings', 'Ceiling', 'room-stairs'], ['fixtures', 'Fixtures', 'toilet']];
-        const scenePills = [['room', 'Walls', 'room-wall'], ['wardrobe', 'Wardrobe', 'wardrobe'], ['kitchen', 'Cabinets', 'cupboard'], ...wallPills];
+        const scenePills = [['room', 'Walls', 'room-wall'], ['wardrobe', 'Wardrobe', 'wardrobe'], ['kitchen', 'Cabinets', 'cupboard'], ...wallPills, ['furnishings', 'Furnishings', 'bed']];
         categories.innerHTML = autoDesign + [...scenePills, ...pills].map(([key, name, ic]) => '<button type="button" data-category="' + key + '" aria-pressed="false"' + tab(key) + wallTab(key) + studioTab(key) + (SCENE_CATEGORIES.includes(key) ? ' hidden' : '') + '>' + icon(ic) + '<span>' + name + '</span></button>').join('');
         const wardrobeArt = '<svg class="product-art" viewBox="0 0 146 110" aria-hidden="true"><path d="M42 17 92 10 112 24 62 32Z" fill="#e0c49b"/><path d="M42 17v80l20 10V32Z" fill="#b59261"/><path d="M62 32 112 24v72l-50 11Z" fill="#cfad79"/><path d="m87 28 0 74m-5-43v10m10-12v10" stroke="#8d734f" stroke-width="1.5"/></svg>';
         products.innerHTML = '<button type="button" data-product-category="wardrobe" data-add-wardrobe>'+wardrobeArt+'<span>Wardrobe</span></button>' + shapes.map(t => shapeButton(t, ' data-product-category="wardrobe" hidden')).join('') + piecePresetButtons() + forSpace.map(x => '<button type="button" '+attr(x)+' data-product-category="'+group(x.k)+'" aria-disabled="'+!x.fit+'" class="'+(!x.fit?'no':x.warn?'warn':'')+'" title="'+esc(nm(x.k)+(x.hint?' · '+x.hint:''))+'">'+productArt(x.k)+'<span>'+nm(x.k)+'</span></button>').join('') + roomProducts();
@@ -85,7 +85,7 @@ export function createAddMenuPresenter({ $, model, selectionState, geometry, add
             };
         });
         heading.className = 'add-context-title';
-        const titles = { fixtures: 'Fixtures', ceilings: 'Ceiling', wall: 'Add to wall', studio: 'Add to room', room: 'Walls', kitchen: 'Add a cabinet', furniture: 'Add furniture' };
+        const titles = { fixtures: 'Fixtures', furnishings: 'Furnishings', ceilings: 'Ceiling', wall: 'Add to wall', studio: 'Add to room', room: 'Walls', kitchen: 'Add a cabinet', furniture: 'Add furniture' };
         heading.textContent = titles[context] ?? 'Add a wardrobe';
         categories.prepend(heading);
         // Add furniture: category tiles, a room filter and the pieces of the category picked (furniture-catalog.ts).
